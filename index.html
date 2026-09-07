@@ -1,1 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Do2Earn</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: #fff;
+      color: #222;
+    }
+    main {
+      width: 100%;
+      max-width: 600px;
+      padding: 40px 24px;
+    }
+    .do2earn-logo {
+      width: min(240px, 70vw);
+      height: auto;
+      display: block;
+      margin: 0 auto 24px;
+    }
+    .tagline {
+      margin: 0 0 42px;
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+    h2 {
+      margin: 0 0 24px;
+      font-size: 1.35rem;
+    }
+    .project-link {
+      display: inline-block;
+    }
+    .steemflags-logo {
+      width: min(260px, 75vw);
+      height: auto;
+      display: block;
+      transition: transform 0.2s ease;
+    }
+    .project-link:hover .steemflags-logo {
+      transform: scale(1.03);
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <img class="do2earn-logo" src="assets/Do2Earn_Logo.png" alt="Do2Earn">
 
+    <p class="tagline">Web 3.0 Projects Developer</p>
+
+    <h2>Projects:</h2>
+
+    <a class="project-link" href="https://do2earn.github.io/steemflags/" aria-label="Open Steem Flags">
+      <img class="steemflags-logo" src="assets/steemflags_logo.png" alt="Steem Flags">
+    </a>
+  </main>
+</body>
+</html>
