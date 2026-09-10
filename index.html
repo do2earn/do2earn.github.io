@@ -90,6 +90,27 @@
       background: #0b5ed7;
       transform: translateY(-1px);
     }
+    .footer-card {
+      width: 100%;
+      max-width: 560px;
+      margin: 18px auto 0;
+      padding: 18px 16px;
+      background: #f8f9fa;
+      border: 1px solid #e2e6ea;
+      border-radius: 18px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+      color: #555;
+      font-size: 0.92rem;
+      line-height: 1.8;
+    }
+    .footer-card a {
+      color: #06c;
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .footer-card a:hover {
+      text-decoration: underline;
+    }
     @media (max-width: 480px) {
       main {
         padding: 24px 14px;
@@ -107,6 +128,11 @@
       }
       .project-info {
         line-height: 1.65;
+      }
+      .footer-card {
+        margin-top: 14px;
+        padding: 16px 14px;
+        border-radius: 16px;
       }
     }
   </style>
@@ -133,6 +159,11 @@
 
       <a class="play-now" href="https://steemflags.do2earn.dev" target="_blank" rel="noopener">Play Now</a>
     </section>
+
+    <footer class="footer-card">
+      Owner: <a href="https://allmylinks.com/mehdiq" target="_blank" rel="noopener">Mehdi Q.</a><br>
+      © do2earn.dev
+    </footer>
   </main>
 </body>
 </html>
