@@ -2,13 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Do2Earn</title>
   <style>
     * { box-sizing: border-box; }
     body {
       margin: 0;
       min-height: 100vh;
+      min-height: 100svh;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -16,27 +17,30 @@
       text-align: center;
       background: #fff;
       color: #222;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
     }
     main {
       width: 100%;
       max-width: 600px;
-      padding: 40px 24px;
+      padding: 32px 20px;
     }
     .do2earn-logo {
-      width: min(240px, 70vw);
+      width: min(240px, 68vw);
       height: auto;
       display: block;
-      margin: 0 auto 24px;
+      margin: 0 auto 20px;
     }
     .tagline {
-      margin: 0 0 42px;
-      font-size: 1.25rem;
-      font-weight: 600;
+      margin: 0 0 32px;
+      font-size: clamp(1.5rem, 5vw, 2rem);
+      line-height: 1.2;
+      font-weight: 700;
     }
     .project-card {
       margin: 0 auto;
+      width: 100%;
       max-width: 560px;
-      padding: 28px 24px 30px;
+      padding: 24px 18px 26px;
       background: #f8f9fa;
       border: 1px solid #e2e6ea;
       border-radius: 22px;
@@ -46,10 +50,10 @@
       display: inline-block;
     }
     .steemflags-logo {
-      width: min(260px, 75vw);
+      width: min(260px, 72vw);
       height: auto;
       display: block;
-      margin: 0 auto 20px;
+      margin: 0 auto 18px;
       transition: transform 0.2s ease;
     }
     .project-link:hover .steemflags-logo {
@@ -59,8 +63,9 @@
       margin: 0 auto 18px;
       max-width: 520px;
       text-align: left;
-      line-height: 1.8;
-      font-size: 1rem;
+      line-height: 1.7;
+      font-size: clamp(0.9rem, 3.8vw, 1rem);
+      overflow-wrap: anywhere;
     }
     .project-info a {
       color: #06c;
@@ -71,18 +76,38 @@
     }
     .play-now {
       display: inline-block;
-      margin-top: 8px;
-      padding: 11px 24px;
+      width: min(100%, 220px);
+      margin-top: 6px;
+      padding: 12px 24px;
       background: #0d6efd;
       color: #fff;
       text-decoration: none;
       font-weight: 700;
-      border-radius: 8px;
+      border-radius: 10px;
       transition: background 0.2s ease, transform 0.2s ease;
     }
     .play-now:hover {
       background: #0b5ed7;
       transform: translateY(-1px);
+    }
+    @media (max-width: 480px) {
+      main {
+        padding: 24px 14px;
+      }
+      .do2earn-logo {
+        width: min(210px, 64vw);
+        margin-bottom: 16px;
+      }
+      .tagline {
+        margin-bottom: 26px;
+      }
+      .project-card {
+        padding: 20px 15px 22px;
+        border-radius: 18px;
+      }
+      .project-info {
+        line-height: 1.65;
+      }
     }
   </style>
 </head>
@@ -90,7 +115,7 @@
   <main>
     <img class="do2earn-logo" src="assets/Do2Earn_Logo.png" alt="Do2Earn">
 
-    <p class="tagline"><h1>Web 3.0 Projects Developer</h1></p>
+    <h1 class="tagline">Web 3.0 Projects Developer</h1>
 
     <section class="project-card">
       <a class="project-link" href="https://steemflags.do2earn.dev" target="_blank" rel="noopener" aria-label="Open Steem Flags">
