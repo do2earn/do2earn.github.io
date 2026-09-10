@@ -31,10 +31,29 @@
       margin: 0 auto 20px;
     }
     .tagline {
+      position: relative;
+      display: inline-block;
       margin: 0 0 8px;
-      font-size: clamp(1.5rem, 5vw, 2rem);
-      line-height: 1.2;
-      font-weight: 700;
+      padding: 0 10px 10px;
+      font-family: "Segoe UI", Arial, sans-serif;
+      font-size: clamp(1.65rem, 5.8vw, 2.35rem);
+      line-height: 1.12;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      color: #0084ff;
+      text-shadow: 0 4px 18px rgba(0, 132, 255, 0.18);
+    }
+    .tagline::after {
+      content: "";
+      position: absolute;
+      left: 20%;
+      right: 20%;
+      bottom: 0;
+      height: 2px;
+      border-radius: 999px;
+      background: #0084ff;
+      opacity: 0.8;
+      box-shadow: 0 0 12px rgba(0, 132, 255, 0.35);
     }
     .experience-tagline {
       margin: 0 0 32px;
@@ -129,6 +148,8 @@
       }
       .tagline {
         margin-bottom: 6px;
+        padding-bottom: 8px;
+        letter-spacing: -0.02em;
       }
       .experience-tagline {
         margin-bottom: 26px;
