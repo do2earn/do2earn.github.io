@@ -75,17 +75,22 @@
       border-radius: 22px;
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
     }
+    .project-card + .project-card {
+      margin-top: 18px;
+    }
     .project-link {
       display: inline-block;
     }
-    .steemflags-logo {
+    .steemflags-logo,
+    .steemgames-logo {
       width: min(260px, 72vw);
       height: auto;
       display: block;
       margin: 0 auto 18px;
       transition: transform 0.2s ease;
     }
-    .project-link:hover .steemflags-logo {
+    .project-link:hover .steemflags-logo,
+    .project-link:hover .steemgames-logo {
       transform: scale(1.03);
     }
     .project-info {
@@ -178,6 +183,22 @@
 
     <h1 class="tagline">Web 3.0 Projects Developer</h1>
     <p class="experience-tagline">Entertainment • Blockchain • Web3 Experiences</p>
+
+    <section class="project-card">
+      <a class="project-link" href="https://steemgames.do2earn.dev/" target="_blank" rel="noopener noreferrer" aria-label="Open Steem Games">
+        <img class="steemgames-logo" src="assets/steemgames_logo.png" alt="Steem Games">
+      </a>
+
+      <div class="project-info">
+        🔴 Project Name: <a href="https://steemgames.do2earn.dev/" target="_blank" rel="noopener noreferrer">Steem Games</a><br>
+        🔴 Category: Game Directory<br>
+        🔴 Blockchain: <a href="https://coinmarketcap.com/currencies/steem/" target="_blank" rel="noopener noreferrer">Steem</a><br>
+        🔴 Assets: D2E, <a href="https://coinmarketcap.com/currencies/steem/" target="_blank" rel="noopener noreferrer">$STEEM</a><br>
+        ℹ️ <a href="https://steemgames.do2earn.dev/about.html" target="_blank" rel="noopener noreferrer">More Information</a>
+      </div>
+
+      <a class="play-now" href="https://steemgames.do2earn.dev/" target="_blank" rel="noopener noreferrer">Explore Now</a>
+    </section>
 
     <section class="project-card">
       <a class="project-link" href="https://steemflags.do2earn.dev" target="_blank" rel="noopener" aria-label="Open Steem Flags">
