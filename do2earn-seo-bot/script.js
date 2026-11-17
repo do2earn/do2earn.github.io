@@ -175,7 +175,15 @@
     updateProgress();
   });
 
-  checkButton.addEventListener("click", renderChecklist);
+  checkButton.addEventListener("click", () => {
+    try {
+      localStorage.setItem("do2earn-seo-bot:last-selection", JSON.stringify({
+        project: projectSelect.value,
+        type: typeSelect.value
+      }));
+    } catch (_) {}
+    renderChecklist();
+  });
 
   resetButton.addEventListener("click", () => {
     if (!activeKey || !window.confirm("Reset all completed items in this checklist?")) return;
@@ -186,4 +194,14 @@
     saveChecked();
     updateProgress();
   });
+  // Restore the last selected checklist after the page is reopened.
+  try {
+    const lastSelection = JSON.parse(localStorage.getItem("do2earn-seo-bot:last-selection") || "null");
+    if (lastSelection && checklists[lastSelection.project] && checklists[lastSelection.project][lastSelection.type]) {
+      projectSelect.value = lastSelection.project;
+      typeSelect.value = lastSelection.type;
+      renderChecklist();
+    }
+  } catch (_) {}
+
 })();
