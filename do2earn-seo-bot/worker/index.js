@@ -48,7 +48,7 @@ async function getText(url) {
 }
 async function inspectPage(url) {
   const { response: res, body: html } = await getText(url);
-  if (!res.ok) return { url, status: res.status, html: "" };
+  if (!res.ok) return { url, finalUrl: res.url || url, status: res.status, html: "" };
   const title = text(html, /<title\b[^>]*>([\s\S]*?)<\/title\s*>/i);
   const descriptionTag = (html.match(/<meta\b[^>]*>/gi) || []).find(tag => (attrs(tag).name || "").toLowerCase() === "description");
   const description = descriptionTag ? attrs(descriptionTag).content || "" : "";
@@ -66,7 +66,7 @@ async function inspectPage(url) {
   const lang = /<html\b[^>]*\blang\s*=\s*["'][^"']+["']/i.test(html);
   const headings = [...html.matchAll(/<h[1-6]\b/gi)].length;
   const noindex = /\bnoindex\b/i.test(robots?.content || "");
-  return { url, status: res.status, html, title, description, canonical, h1, images, links, viewport, ogTitle, ogDescription, hasSchema, lang, headings, noindex };
+  return { url, finalUrl: res.url || url, status: res.status, html, title, description, canonical, h1, images, links, viewport, ogTitle, ogDescription, hasSchema, lang, headings, noindex };
 }
 function parseSitemap(xml, base) {
   return [...xml.matchAll(/<loc>\s*([^<]+?)\s*<\/loc>/gi)].map(m => absolute(m[1].trim(), base)).filter(u => u && u.origin === base.origin && u.protocol === "https:").map(u => u.href);
@@ -126,7 +126,7 @@ function buildChecks(data) {
   const internalLinks = okPages.flatMap(p => p.links).map(h => absolute(h, pages[0]?.url || "https://invalid.local")).filter(u => u && u.origin === new URL(pages[0]?.url || "https://invalid.local").origin).length;
   const externalLinks = okPages.flatMap(p => p.links).map(h => absolute(h, pages[0]?.url || "https://invalid.local")).filter(u => u && u.origin !== new URL(pages[0]?.url || "https://invalid.local").origin).length;
   const hasNoindex = okPages.filter(p => p.noindex);
-  const allHttps = pages.every(p => p.url.startsWith("https://"));
+  const allHttps = pages.every(p => (p.finalUrl || p.url).startsWith("https://"));
   const schemaPages = okPages.filter(p => p.hasSchema).length;
   const checks = [];
   const add = (id, title, result, passDetail, failDetail, evidence = "") => checks.push(check(id, title, result === null ? "UNKNOWN" : result ? "PASS" : "FAIL", result === null ? "Could not verify because no crawlable HTML pages were available." : result ? passDetail : failDetail, evidence));
