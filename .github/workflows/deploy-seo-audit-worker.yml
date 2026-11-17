@@ -1,0 +1,25 @@
+name: Deploy Do2Earn SEO Audit Worker
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "do2earn-seo-bot/worker/**"
+      - ".github/workflows/deploy-seo-audit-worker.yml"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy SEO audit engine
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Deploy to Cloudflare Workers
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: do2earn-seo-bot/worker
+          command: deploy
