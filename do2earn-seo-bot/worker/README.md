@@ -39,3 +39,14 @@ Never put API keys in GitHub files or browser JavaScript.
 ## CORS
 
 The Worker accepts browser requests from `https://do2earn.dev` and `https://www.do2earn.dev`. If the site is hosted on a different canonical origin, update `ALLOWED_ORIGIN` in `index.js`.
+
+## GitHub Actions deployment
+
+A workflow is included at `.github/workflows/deploy-seo-audit-worker.yml`. Add these repository Actions secrets under **Settings → Secrets and variables → Actions**:
+
+- `CLOUDFLARE_API_TOKEN`: a Cloudflare API token with permission to edit Workers.
+- `CLOUDFLARE_ACCOUNT_ID`: the Cloudflare account ID.
+
+After adding both secrets, push a change under `do2earn-seo-bot/worker/` or manually run **Deploy Do2Earn SEO Audit Worker** from the repository Actions tab. The workflow deploys the Worker; it does not configure the browser endpoint automatically.
+
+After the first deployment, copy the exact `workers.dev` URL from the successful deployment log and set it as `API_BASE` in `do2earn-seo-bot/script.js`, then commit that one-line change. Until this endpoint is configured, the website will explain that the audit engine is not yet deployed rather than displaying fabricated results.
