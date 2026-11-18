@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "title": "Do2Earn SEO Checklist",
   "scope": {
     "onPage": true,
@@ -139,7 +139,7 @@
       "id": "image-loading",
       "category": "Performance",
       "title": "Image loading hints",
-      "description": "Checks explicit image and ancestor semantics for lazy loading; ambiguous viewport positions remain unknown."
+      "description": "Checks eager/high-priority treatment for clearly identified hero images and lazy loading for clearly identified below-the-fold images; ambiguous image positions remain unknown."
     },
     {
       "id": "css-imports",
@@ -241,7 +241,7 @@
       "id": "hreflang",
       "category": "International SEO",
       "title": "Hreflang annotations",
-      "description": "Checks basic language-code and HTTPS syntax when used."
+      "description": "Checks hreflang only when multilingual or regional variants are detected; otherwise marked not applicable."
     },
     {
       "id": "jsonld-valid",
