@@ -183,7 +183,58 @@
     const cssImports = count(/@import\b/gi, joined);
     const insecureAssets = [...joined.matchAll(/(?:src|href)\s*=\s*["']http:\/\/[^"']+/gi)].map(match => match[0]);
     const insecureCanonicalOrSitemap = /<link\b(?=[^>]*\brel\s*=\s*["'][^"']*canonical)[^>]*\bhref\s*=\s*["']http:\/\//i.test(publicJoined) || /<loc>\s*http:\/\//i.test(joined);
+
+    const parsedPages = html.map(file => ({ file, doc: new DOMParser().parseFromString(file.text, "text/html") }));
+    const pageMeta = parsedPages.map(x => ({path:x.file.path,title:x.doc.querySelector("title")?.textContent.trim()||"",description:x.doc.querySelector('meta[name="description"]')?.getAttribute("content")?.trim()||""}));
+    const duplicateValues = key => {const grouped=new Map();pageMeta.filter(x=>x[key]).forEach(x=>{const v=x[key].toLocaleLowerCase();grouped.set(v,[...(grouped.get(v)||[]),x.path]);});return [...grouped.values()].filter(g=>g.length>1);};
+    const titleDup=duplicateValues("title"),descDup=duplicateValues("description");
+    const titleLong=pageMeta.filter(x=>x.title&&(x.title.length<15||x.title.length>70));
+    const descLong=pageMeta.filter(x=>x.description&&(x.description.length<50||x.description.length>160));
+    const multiH1=parsedPages.filter(x=>x.doc.querySelectorAll("h1").length>1);
+    const links=parsedPages.flatMap(x=>[...x.doc.querySelectorAll("a")].map(a=>({page:x.file.path,href:a.getAttribute("href")||"",label:(a.textContent||"").trim()||a.getAttribute("aria-label")||""})));
+    const unlabeledLinks=links.filter(x=>!x.label);
+    const localLinks=links.filter(x=>x.href&&!/^(#|mailto:|tel:|javascript:|data:|https?:|\/\/)/i.test(x.href));
+    const missingLinks=localLinks.filter(x=>{try{const u=new URL(x.href,"https://seo-audit.invalid/"+x.page);if(u.origin!=="https://seo-audit.invalid")return false;let p=decodeURIComponent(u.pathname.replace(/^\//,""));if(!p)p="index.html";if(!p.includes("."))p=p.replace(/\/$/,"")+"/index.html";return (p.endsWith(".html")||p.endsWith(".htm"))&&!paths.has(p);}catch(_){return false;}});
+    const canonicalInfo=parsedPages.map(x=>({path:x.file.path,links:[...x.doc.querySelectorAll('link[rel~="canonical"]')]}));
+    const badCanonical=canonicalInfo.filter(x=>x.links.length===1&&(()=>{try{const u=new URL(x.links[0].getAttribute("href")||"");return u.protocol!=="https:"||!u.host;}catch(_){return true;}})());
+    const urlBad=allPaths.filter(p=>/[A-Z ]/.test(p)||p.includes("?")||p.includes("#"));
+    const sitemapFiles=files.filter(f=>/sitemap[^/]*\.xml$/i.test(f.path));
+    const sitemapBad=sitemapFiles.filter(f=>{const d=new DOMParser().parseFromString(f.text,"application/xml");return !!d.querySelector("parsererror")||!["urlset","sitemapindex"].includes(d.documentElement?.localName);});
+    const robotsFiles=files.filter(f=>f.path.endsWith("robots.txt"));
+    const robotsMap=robotsFiles.filter(f=>f.text.split(/\r?\n/).some(line=>/^\s*sitemap\s*:/i.test(line)));
+    const hreflangTags=parsedPages.flatMap(x=>[...x.doc.querySelectorAll('link[rel~="alternate"][hreflang]')].map(tag=>({page:x.file.path,tag})));
+    const hreflangBad=hreflangTags.filter(x=>{const l=x.tag.getAttribute("hreflang")||"",h=x.tag.getAttribute("href")||"";return !/^(?:[a-z]{2,3}(?:-[a-z0-9]{2,8})*|x-default)$/i.test(l)||!h.startsWith("https://");});
+    const jsonLd=parsedPages.flatMap(x=>[...x.doc.querySelectorAll('script[type="application/ld+json"]')].map(n=>({page:x.file.path,text:n.textContent})));
+    const invalidJsonLd=jsonLd.filter(x=>{try{JSON.parse(x.text);return false;}catch(_){return true;}});
+    const noImageDimensions=imageTags.filter(tag=>{const d=new DOMParser().parseFromString(tag,"text/html"),img=d.querySelector("img");return !img?.hasAttribute("width")||!img?.hasAttribute("height");});
+    const modernImages=parsedPages.flatMap(x=>[...x.doc.querySelectorAll("img,source")]).filter(n=>/\.(webp|avif)(?:[?#,\s]|$)/i.test((n.getAttribute("src")||"")+" "+(n.getAttribute("srcset")||"")));
+    const blockingScripts=parsedPages.filter(x=>[...x.doc.head.querySelectorAll("script[src]")].some(n=>!n.hasAttribute("defer")&&!n.hasAttribute("async")&&n.getAttribute("type")!=="module"));
+    const missingLandmarks=parsedPages.filter(x=>!x.doc.querySelector("main")||!x.doc.querySelector("nav"));
+    const incompleteOg=parsedPages.filter(x=>!x.doc.querySelector('meta[property="og:description"]')||!x.doc.querySelector('meta[property="og:type"]')||!x.doc.querySelector('meta[property="og:url"]'));
+    const extra={
+      "title-length":[!hasHtml?null:titleLong.length===0,titleLong.length?"Titles outside advisory 15–70 characters: "+titleLong.map(x=>x.path+" ("+x.title.length+")").join(", "):"Available titles fall within advisory 15–70 character range."],
+      "title-unique":[!hasHtml?null:titleDup.length===0,titleDup.length?"Duplicate titles: "+titleDup.map(x=>x.join(", ")).join("; "):"No duplicate static titles detected."],
+      "description-length":[!hasHtml?null:pageMeta.every(x=>!x.description)?null:descLong.length===0,descLong.length?"Descriptions outside advisory 50–160 characters: "+descLong.map(x=>x.path+" ("+x.description.length+")").join(", "):"Available descriptions fall within advisory range."],
+      "description-unique":[!hasHtml?null:descDup.length===0,descDup.length?"Duplicate descriptions: "+descDup.map(x=>x.join(", ")).join("; "):"No duplicate static descriptions detected."],
+      "single-h1":[!hasHtml?null:multiH1.length===0,multiH1.length?"Multiple H1 elements: "+multiH1.map(x=>x.file.path).join(", "):"No multiple static H1 elements; one H1 is a structural recommendation, not a strict ranking rule."],
+      "descriptive-links":[!hasHtml?null:unlabeledLinks.length===0,unlabeledLinks.length+" links without visible text or aria-label."],
+      "internal-links":[!hasHtml?null:localLinks.length>0,localLinks.length+" local navigation links detected."],
+      "broken-internal-links":[!hasHtml?null:missingLinks.length===0,missingLinks.length?"Potential missing local HTML targets: "+missingLinks.slice(0,10).map(x=>x.page+" → "+x.href).join("; "):"No missing local HTML targets detected by repository-path matching; runtime routes are not tested."],
+      "clean-urls":[urlBad.length===0,urlBad.length?"Unclean paths: "+urlBad.slice(0,10).join(", "):"Scanned paths use simple lowercase URL-friendly names."],
+      "sitemap-structure":[!sitemapFiles.length?null:sitemapBad.length===0,sitemapFiles.length?(sitemapBad.length?"Basic XML structure issue: "+sitemapBad.map(x=>x.path).join(", "):"Sitemap XML is well-formed with a recognized root element."):"No sitemap available."],
+      "robots-sitemap":[!robotsFiles.length?null:robotsMap.length>0,robotsFiles.length?(robotsMap.length?"Sitemap directive found.":"No Sitemap directive; recommended, not mandatory."):"No robots.txt available."],
+      "canonical-single":[!hasHtml?null:canonicalInfo.every(x=>x.links.length===1),canonicalInfo.filter(x=>x.links.length!==1).length?"Pages without exactly one canonical: "+canonicalInfo.filter(x=>x.links.length!==1).map(x=>x.path).join(", "):"Exactly one canonical link per audited page."],
+      "canonical-absolute":[!hasHtml?null:badCanonical.length===0,badCanonical.length?"Canonical not absolute HTTPS: "+badCanonical.map(x=>x.path).join(", "):"Detected canonical URLs are absolute HTTPS URLs."],
+      "hreflang":[!hasHtml?null:!hreflangTags.length?null:hreflangBad.length===0,hreflangTags.length?(hreflangBad.length?"Invalid hreflang syntax/target in "+hreflangBad.length+" tag(s).":"Hreflang syntax looks valid; reciprocal mapping is not checked."):"Not required unless multilingual/regional variants exist."],
+      "jsonld-valid":[!hasHtml?null:!jsonLd.length?null:invalidJsonLd.length===0,jsonLd.length?(invalidJsonLd.length?"Invalid JSON-LD syntax in "+invalidJsonLd.length+" block(s).":"All JSON-LD blocks parse as JSON; schema meaning is not validated."):"No JSON-LD blocks; structured-data presence is checked separately."],
+      "image-dimensions":[!hasHtml?null:imageTags.length===0?true:noImageDimensions.length===0,noImageDimensions.length+" of "+imageTags.length+" images lack explicit width and/or height."],
+      "modern-images":[!hasHtml?null:imageTags.length===0?true:modernImages.length?true:null,modernImages.length+" WebP/AVIF references found; absence is UNKNOWN, not a failure."],
+      "render-blocking-scripts":[!hasHtml?null:blockingScripts.length===0,blockingScripts.length?"Potential blocking head scripts: "+blockingScripts.map(x=>x.file.path).join(", "):"No classic blocking external scripts detected in document heads."],
+      "semantic-landmarks":[!hasHtml?null:missingLandmarks.length===0,missingLandmarks.length?"Missing main/nav landmarks: "+missingLandmarks.map(x=>x.file.path).join(", "):"All pages contain main and nav landmarks; primarily an accessibility signal."],
+      "og-completeness":[!hasHtml?null:incompleteOg.length===0,incompleteOg.length?"Missing OG description/type/url: "+incompleteOg.map(x=>x.file.path).join(", "):"OG description, type and URL are present."]
+    };
     const results = {
+      ...extra,
       html: [hasHtml, hasHtml ? html.length + " public HTML page(s) audited: " + pageNames : "No eligible public HTML documents were found."],
       title: titleCheck,
       description: descriptionCheck,
