@@ -26,8 +26,7 @@
     <section class="card setup-card" aria-labelledby="checker-title">
       <div class="card-heading"><span class="step-number">01</span><div><p class="eyebrow">GITHUB SOURCE CODE ANALYSIS</p><h2 id="checker-title">SEO Checker</h2></div></div>
       <label class="field"><span>Do2Earn Project</span><select id="project-select"><option value="steem-flags">Steem Flags</option><option value="steem-games">Steem Games</option></select></label>
-      <div class="audit-scope"><span class="scope-check">✓</span><span><strong>On-Page &amp; Technical SEO</strong><small>Page content, metadata, crawlability, links, structured data and performance</small></span><span class="scope-live">ENABLED</span></div>
-      <div class="audit-scope"><span class="scope-check">↗</span><span><strong>Off-Page SEO</strong><small>Discover external mentions, backlinks, social profiles, communities, editorial coverage and listings. Verify each source before it counts.</small></span><span class="scope-live">ENABLED</span></div>
+      <fieldset class="audit-mode" aria-label="Choose one SEO audit type"><legend>SEO Audit Type</legend><label class="audit-option"><input type="radio" name="audit-type" value="on-page" checked><span class="scope-check">✓</span><span><strong>On-Page &amp; Technical SEO</strong><small>Page content, metadata, crawlability, links, structured data and performance</small></span></label><label class="audit-option"><input type="radio" name="audit-type" value="off-page"><span class="scope-check">↗</span><span><strong>Off-Page SEO</strong><small>Discover external mentions, backlinks, social profiles, communities, editorial coverage and listings. Verify each source before it counts.</small></span></label></fieldset>
       <button class="primary-button" id="check-button" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5M7.8 10.8l2 2 4-4"/></svg>Check SEO</button>
       <p class="helper-text" id="helper-text">Select a project and scan its source files. Results are recalculated on every run.</p>
       <div class="error-box" id="error-box" hidden role="alert"></div>
@@ -43,7 +42,7 @@
         <div class="list-toolbar"><h3>Audit checks</h3><button class="text-button" id="rerun-button" type="button">Run again</button></div><div class="checklist" id="checklist"></div><section class="offpage-panel" id="offpage-panel" hidden><h3>Off-Page Evidence Discovery</h3><p>Public search results are discovery candidates, not proof. Open each source and use Verify source to confirm a live mention or backlink. Backlink quality and historical link changes still require specialist data or human review.</p><div id="offpage-results"></div><div class="offpage-tools"><a href="https://search.google.com/search-console" target="_blank" rel="noopener noreferrer">Google Search Console</a><a href="https://www.bing.com/webmasters/" target="_blank" rel="noopener noreferrer">Bing Webmaster Tools</a><a href="https://ahrefs.com/backlink-checker" target="_blank" rel="noopener noreferrer">Ahrefs Free Backlink Checker</a></div></section><div class="report-note" id="report-note"></div>
       </div>
     </section>
-    <footer><span>Do2Earn SEO Bot</span><span>Automated On-Page, Technical &amp; Off-Page Audit</span></footer>
+    <footer><span>Do2Earn SEO Bot</span><span>Automated On-Page or Off-Page SEO Audit</span></footer>
   </main>
 </body>
 </html>
