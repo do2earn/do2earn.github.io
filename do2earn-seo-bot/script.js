@@ -32,45 +32,61 @@
     $("report-note").textContent = report.note;
     try { localStorage.setItem("do2earn-seo-bot:last-report:" + report.projectId, JSON.stringify(report)); } catch (_) {}
   }
-  function retryTime(response) {
-    const retryAfter = response.headers.get("retry-after");
-    if (retryAfter && /^\\d+$/.test(retryAfter)) return new Date(Date.now() + Number(retryAfter) * 1000).toLocaleString();
-    const reset = Number(response.headers.get("x-ratelimit-reset"));
-    if (Number.isFinite(reset) && reset > 0) return new Date(reset * 1000).toLocaleString();
-    return "";
-  }
-  async function fetchJson(url) {
-    const response = await fetch(url, {
-      headers: { Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" },
-      cache: "no-store"
-    });
-    if (!response.ok) {
-      const raw = await response.text();
-      let message = "";
-      try { const payload = JSON.parse(raw); message = payload.message || ""; }
-      catch (_) { message = raw.slice(0, 300); }
-      const rateLimited = response.status === 429 ||
-        response.headers.get("x-ratelimit-remaining") === "0" ||
-        /rate limit|secondary rate limit|abuse detection/i.test(message);
-      const retry = retryTime(response);
-      let detail = "GitHub API returned HTTP " + response.status + ".";
-      if (message) detail += " GitHub: " + message;
-      if (rateLimited) detail += retry ? " Rate limit reached. Try again after: " + retry + "." : " GitHub rate limit reached. Please wait before retrying.";
-      else if (response.status === 403) detail += " This may be a permission restriction or an API rate limit.";
-      else if (response.status === 404) detail += " The repository or requested branch/tree was not found, or is not accessible.";
-      throw new Error(detail);
-    }
+  async function fetchManifest(url) {
+    const response = await fetch(url, { headers: { Accept: "application/json" }, cache: "no-store" });
+    if (!response.ok) throw new Error("Project file manifest could not be loaded (HTTP " + response.status + "). The automatic file-list workflow may not have completed yet. Please retry later.");
     return response.json();
   }
+  function rawFileUrl(project, commit, path) {
+    const encodedPath = path.split("/").map(encodeURIComponent).join("/");
+    return "https://raw.githubusercontent.com/" + project.repository + "/" + commit + "/" + encodedPath;
+  }
   async function loadProjectFiles(project) {
-    const branch = project.branch || "main";
-    const tree = await fetchJson("https://api.github.com/repos/" + project.repository + "/git/trees/" + encodeURIComponent(branch) + "?recursive=1");
-    if (tree.truncated) throw new Error("GitHub returned a truncated file tree. The project is too large for a complete scan.");
-    const allowed = new Set(rules.scan.extensions); const files = (tree.tree || []).filter(item => item.type === "blob" && allowed.has("." + item.path.split(".").pop().toLowerCase()));
-    if (!files.length) throw new Error("No supported source files were found in " + project.repository + ".");
-    const selected = files.slice(0, rules.scan.maxFiles); let cursor = 0; const contents = [];
-    async function worker() { while (cursor < selected.length) { const item = selected[cursor++]; try { const response = await fetch("https://raw.githubusercontent.com/" + project.repository + "/" + encodeURIComponent(branch) + "/" + item.path.split("/").map(encodeURIComponent).join("/"), { cache: "no-store" }); if (response.ok) contents.push({ path: item.path, text: await response.text() }); } catch (_) {} } }
-    await Promise.all(Array.from({ length: rules.scan.concurrency }, worker)); if (!contents.length) throw new Error("GitHub source files could not be downloaded. Please retry after a short delay."); return { branch, totalFiles: files.length, allPaths: files.map(item => item.path), contents };
+    const manifest = await fetchManifest(project.manifestUrl);
+    if (!manifest || manifest.repository !== project.repository ||
+        !/^[a-f0-9]{40}$/i.test(manifest.commit || "") ||
+        !Array.isArray(manifest.files) || !Array.isArray(manifest.allPaths)) {
+      throw new Error("The generated file manifest is invalid or belongs to a different repository. Please run the manifest workflow again.");
+    }
+    const allowed = new Set(rules.scan.extensions);
+    const files = manifest.files.filter(path =>
+      typeof path === "string" &&
+      !path.startsWith("/") &&
+      !path.split("/").includes("..") &&
+      allowed.has("." + path.split(".").pop().toLowerCase())
+    );
+    if (!files.length) throw new Error("No supported source files were listed in the generated manifest for " + project.repository + ".");
+    const selected = files.slice(0, rules.scan.maxFiles);
+    let cursor = 0;
+    const contents = [];
+    const failed = [];
+    async function worker() {
+      while (cursor < selected.length) {
+        const path = selected[cursor++];
+        try {
+          const response = await fetch(rawFileUrl(project, manifest.commit, path), { cache: "default" });
+          if (!response.ok) {
+            failed.push(path);
+            continue;
+          }
+          contents.push({ path, text: await response.text() });
+        } catch (_) {
+          failed.push(path);
+        }
+      }
+    }
+    await Promise.all(Array.from({ length: rules.scan.concurrency }, worker));
+    if (!contents.length) throw new Error("GitHub Raw could not provide the listed source files. Please retry after a short delay or regenerate the file manifest.");
+    return {
+      branch: manifest.branch || "main",
+      commit: manifest.commit,
+      generatedAt: manifest.generatedAt || null,
+      totalFiles: files.length,
+      allPaths: manifest.allPaths,
+      contents,
+      failedFiles: failed.length,
+      manifestUrl: project.manifestUrl
+    };
   }
   function evaluate(files, allPaths = files.map(file => file.path)) {
     const isDocument = source => /<!doctype\s+html|<html\b/i.test(source);
@@ -151,7 +167,7 @@
     });
   }
   function summarize(checks){const pass=checks.filter(x=>x.status==="PASS").length;const fail=checks.filter(x=>x.status==="FAIL").length;const unknown=checks.filter(x=>x.status==="UNKNOWN").length;const determined=pass+fail;return{pass,fail,unknown,determined,total:checks.length,score:determined?Math.round(pass/determined*100):null};}
-  async function runAudit(){errorBox.hidden=true;helper.textContent="Loading SEO checklist and scanning the selected GitHub project…";setBusy(true);try{if(!rules){const response=await fetch(RULES_URL+"?v="+Date.now(),{cache:"no-store"});if(!response.ok)throw new Error("Could not load seo-checklist.json.");rules=await response.json();}const projectId=$("project-select").value;const project=rules.projects[projectId];if(!project)throw new Error("Unknown project configuration.");const data=await loadProjectFiles(project);const checks=evaluate(data.contents,data.allPaths);const summary=summarize(checks);const report={projectId,projectName:project.name,repository:project.repository+" ("+data.branch+")",website:project.website,auditedAt:new Date().toISOString(),filesScanned:data.contents.length,filesAvailable:data.totalFiles,publicPagesAudited:checks.find(x=>x.id==="html")?.detail||"",summary,score:summary.score,checks,note:(data.totalFiles>data.contents.length?"Partial scan: "+data.contents.length+" of "+data.totalFiles+" supported source files were scanned because the configured safety limit was reached. ":"All "+data.contents.length+" supported source files in the repository were scanned. ")+"Only complete public HTML documents are used for page-level checks; nested admin tools, redirect aliases and HTML fragments are excluded. Dynamic headings may be marked UNKNOWN for live verification. Every check is recalculated on each run. This source-code audit does not inspect live rendered pages, Google indexing, Core Web Vitals or backlinks. Off-Page SEO remains disabled. Some checks still require manual verification."};renderReport(report);helper.textContent="Check completed. "+data.contents.length+" source files were inspected.";}catch(error){showError(error.message||"The SEO scan could not be completed.");helper.textContent="The latest scan failed. No new report was saved.";}finally{setBusy(false);}}
+  async function runAudit(){errorBox.hidden=true;helper.textContent="Loading SEO checklist and scanning the selected GitHub project…";setBusy(true);try{if(!rules){const response=await fetch(RULES_URL+"?v="+Date.now(),{cache:"no-store"});if(!response.ok)throw new Error("Could not load seo-checklist.json.");rules=await response.json();}const projectId=$("project-select").value;const project=rules.projects[projectId];if(!project)throw new Error("Unknown project configuration.");const data=await loadProjectFiles(project);const checks=evaluate(data.contents,data.allPaths);const summary=summarize(checks);const report={projectId,projectName:project.name,repository:project.repository+" ("+data.branch+" · "+data.commit.slice(0,7)+")",website:project.website,manifestGeneratedAt:data.generatedAt,manifestUrl:data.manifestUrl,filesFailed:data.failedFiles,auditedAt:new Date().toISOString(),filesScanned:data.contents.length,filesAvailable:data.totalFiles,publicPagesAudited:checks.find(x=>x.id==="html")?.detail||"",summary,score:summary.score,checks,note:(data.totalFiles>data.contents.length?"Partial scan: "+data.contents.length+" of "+data.totalFiles+" supported source files were selected because the configured safety limit was reached. ":"All "+data.contents.length+" selected supported source files were scanned. ")+(data.failedFiles?"Some Raw files could not be downloaded ("+data.failedFiles+" failed). ":"")+"Only complete public HTML documents are used for page-level checks; nested admin tools, redirect aliases and HTML fragments are excluded. Dynamic headings may be marked UNKNOWN for live verification. Every check is recalculated on each run. This source-code audit does not inspect live rendered pages, Google indexing, Core Web Vitals or backlinks. Off-Page SEO remains disabled. Some checks still require manual verification."};renderReport(report);helper.textContent="Check completed. "+data.contents.length+" source files were inspected."+(data.failedFiles?" "+data.failedFiles+" files could not be downloaded.":"");}catch(error){showError(error.message||"The SEO scan could not be completed.");helper.textContent="The latest scan failed. No new report was saved.";}finally{setBusy(false);}}
   button.addEventListener("click",runAudit);$("rerun-button").addEventListener("click",runAudit);$("project-select").addEventListener("change",()=>{emptyState.hidden=false;reportContent.hidden=true;errorBox.hidden=true;});
   try{const projectId=$("project-select").value;const saved=JSON.parse(localStorage.getItem("do2earn-seo-bot:last-report:"+projectId)||"null");if(saved&&Array.isArray(saved.checks))renderReport(saved);}catch(_){}
 })();
