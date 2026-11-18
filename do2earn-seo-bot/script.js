@@ -31,6 +31,42 @@
       if (check.evidence) { const evidence = document.createElement("span"); evidence.className = "check-evidence"; evidence.textContent = check.evidence; body.append(evidence); }
       const badge = document.createElement("span"); badge.className = "result-status"; badge.textContent = check.status; row.append(icon, body, badge); list.append(row);
     });
+
+    const panel=$("offpage-panel"), evidenceList=$("offpage-results");
+    if(panel&&evidenceList){
+      panel.hidden=false;evidenceList.replaceChildren();
+      const evidence=report.offPageEvidence||{candidates:[],errors:[]};
+      if(!evidence.candidates.length){
+        const empty=document.createElement("p");empty.className="offpage-empty";
+        empty.textContent="No external search candidates were returned. This does not mean that no mentions or backlinks exist.";
+        evidenceList.append(empty);
+      }
+      evidence.candidates.forEach(candidate=>{
+        const card=document.createElement("article");card.className="offpage-source";
+        const copy=document.createElement("div");copy.className="offpage-source-copy";
+        const title=document.createElement("strong");title.textContent=candidate.title||candidate.host;
+        const link=document.createElement("a");link.href=candidate.url;link.target="_blank";link.rel="noopener noreferrer";link.textContent=candidate.host;
+        const desc=document.createElement("p");desc.textContent=candidate.description||candidate.query;
+        copy.append(title,link,desc);
+        const action=document.createElement("button");action.type="button";action.className="verify-source";
+        action.textContent=candidate.verification?(candidate.verification.passed?"Verified":"Retry verification"):"Verify source";
+        action.addEventListener("click",async()=>{
+          action.disabled=true;action.textContent="Checking…";
+          try{const result=await verifyOffPageCandidate(candidate,report);updateOffPageCandidate(candidate,result,report);}
+          catch(error){action.disabled=false;action.textContent="Retry verification";const note=document.createElement("p");note.className="offpage-error";note.textContent=error.message||"Could not verify this page.";card.append(note);}
+        });
+        card.append(copy,action);
+        if(candidate.verification){
+          const status=document.createElement("p");status.className=candidate.verification.passed?"offpage-verified":"offpage-error";
+          status.textContent=candidate.verification.detail||"Verification complete.";card.append(status);
+        }
+        evidenceList.append(card);
+      });
+      if(evidence.errors&&evidence.errors.length){
+        const note=document.createElement("p");note.className="offpage-error";
+        note.textContent="Some searches could not be completed: "+evidence.errors.join(" · ");evidenceList.append(note);
+      }
+    }
     $("report-note").textContent = report.note;
     try { localStorage.setItem("do2earn-seo-bot:last-report-v3:" + report.projectId, JSON.stringify(report)); } catch (_) {}
   }
@@ -90,6 +126,77 @@
       failedFiles: failed.length,
       manifestUrl: project.manifestUrl
     };
+  }
+
+  async function searchOffPage(project) {
+    const domain=new URL(project.website).hostname.replace(/^www\./,"");
+    const name=project.name;
+    const queries=[
+      {id:"backlink-profile",label:"Exact-domain references",q:'"'+domain+'"'},
+      {id:"digital-pr",label:"Digital PR and editorial coverage",q:'"'+name+'" (news OR announcement OR press OR launch)'},
+      {id:"brand-mentions",label:"Independent brand mentions",q:'"'+name+'" "'+domain+'"'},
+      {id:"social-presence",label:"Social profiles and posts",q:'"'+name+'" (site:x.com OR site:facebook.com OR site:youtube.com OR site:discord.com)'},
+      {id:"community",label:"Community discussions",q:'"'+name+'" (site:steemit.com OR site:steemitkorea.com OR site:reddit.com OR site:discord.com)'},
+      {id:"guest-posting",label:"Guest articles and reviews",q:'"'+name+'" ("guest post" OR contributor OR review OR gameplay)'},
+      {id:"directories",label:"Directories and specialist listings",q:'"'+name+'" (directory OR listing OR database OR catalog)'}
+    ];
+    const candidates=[],errors=[];
+    for(const item of queries){
+      try{
+        const response=await fetch("https://s.jina.ai/"+encodeURIComponent(item.q),{headers:{Accept:"application/json"},cache:"no-store"});
+        if(!response.ok) throw new Error("HTTP "+response.status);
+        const payload=await response.json();
+        let rows=Array.isArray(payload.data)?payload.data:(Array.isArray(payload.results)?payload.results:[]);
+        if(!rows.length&&typeof payload.content==="string"){
+          const urls=[...new Set(payload.content.match(/https?:\/\/[^\s)\]>]+/g)||[])];
+          rows=urls.map(url=>({url,title:url}));
+        }
+        rows.slice(0,4).forEach((row,i)=>{
+          const url=row.url||row.link;
+          if(!url||!/^https?:\/\//i.test(url)||candidates.some(x=>x.url===url))return;
+          let host;try{host=new URL(url).hostname.replace(/^www\./,"");}catch(_){return;}
+          if(host===domain||host.endsWith("."+domain))return;
+          candidates.push({id:item.id+"-"+i,checkId:item.id,query:item.label,url,title:row.title||host,host,description:row.description||row.snippet||"",verified:false});
+        });
+      }catch(error){errors.push(item.label+": "+(error.message||"Search unavailable"));}
+    }
+    return {candidates,errors,queriesRun:queries.length,domain};
+  }
+  async function verifyOffPageCandidate(candidate,report){
+    const response=await fetch("https://r.jina.ai/"+candidate.url,{headers:{Accept:"application/json"},cache:"no-store"});
+    if(!response.ok)throw new Error("Reader HTTP "+response.status);
+    const payload=await response.json(),data=payload.data||payload;
+    const content=String(data.content||payload.content||"");
+    if(!content)throw new Error("No readable page content returned.");
+    const target=String(report.website).replace(/^https?:\/\//,"").split("/")[0].replace(/^www\./,"");
+    const links=[...content.matchAll(/\[[^\]]*\]\((https?:\/\/[^)\s]+)\)/gi)].map(m=>m[1]);
+    const hasLink=links.some(url=>{try{const host=new URL(url).hostname.replace(/^www\./,"");return host===target||host.endsWith("."+target);}catch(_){return false;}});
+    const lower=content.toLowerCase(),brand=String(report.projectName).toLowerCase(),hasBrand=lower.includes(brand);
+    const host=new URL(candidate.url).hostname.toLowerCase();
+    const social=/\b(x\.com|twitter\.com|facebook\.com|instagram\.com|youtube\.com|youtu\.be|discord\.com|t\.me|linkedin\.com)\b/.test(host);
+    const community=/\b(steemit\.com|steemitkorea\.com|reddit\.com|discord\.com|bitcointalk\.org)\b/.test(host);
+    const editorial=/\b(press release|news|announc|launch|media|interview|coverage)\b/.test(lower);
+    const guest=/\b(guest post|contributor|written by|author|review|gameplay)\b/.test(lower);
+    const directory=/\b(directory|listing|catalog|database|collection|discover)\b/.test(lower);
+    let passed=false,detail="";
+    if(candidate.checkId==="backlink-profile"){passed=hasLink;detail=passed?"A live external page contains a link to "+target+".":"No live link to "+target+" was found in the extracted links. A plain-text mention does not count as a backlink.";}
+    else if(candidate.checkId==="social-presence"){passed=hasBrand&&social;detail=passed?"The project name was found on a recognized social platform. Engagement and audience size are not measured.":"A matching project mention on a recognized social platform was not confirmed.";}
+    else if(candidate.checkId==="community"){passed=hasBrand&&community;detail=passed?"The project name was found on a recognized community platform. Participation quality is not measured.":"A matching project mention on a recognized community platform was not confirmed.";}
+    else if(candidate.checkId==="digital-pr"){passed=hasBrand&&editorial;detail=passed?"The project name and editorial/news context were found on this external page. Publication authority is not scored.":"The page did not provide both a project mention and clear editorial/news context.";}
+    else if(candidate.checkId==="guest-posting"){passed=hasBrand&&guest;detail=passed?"The project name and article/review context were found on this external page. Editorial independence is not scored.":"The page did not provide both a project mention and guest-article/review context.";}
+    else if(candidate.checkId==="directories"){passed=hasBrand&&directory;detail=passed?"The project name and directory/listing context were found on this external page. Listing quality is not scored.":"The page did not provide both a project mention and directory/listing context.";}
+    else{passed=hasBrand;detail=passed?"The project name was found in readable external content.":"The project name was not confirmed in the readable page.";}
+    return {passed,detail,checkedAt:new Date().toISOString(),host,hasBacklink:hasLink,hasBrand};
+  }
+  function updateOffPageCandidate(candidate,result,report){
+    candidate.verification=result;candidate.verified=true;
+    const check=report.checks.find(x=>x.id===candidate.checkId);
+    if(check){
+      const positives=report.offPageEvidence.candidates.filter(x=>x.checkId===candidate.checkId&&x.verification&&x.verification.passed);
+      if(positives.length){check.status="PASS";check.detail=positives.length+" external source(s) verified. "+result.detail;}
+      else{check.status="UNKNOWN";check.detail=result.detail+" Search results are not exhaustive.";}
+    }
+    report.summary=summarize(report.checks);report.score=report.summary.score;renderReport(report);
   }
   function evaluate(files, allPaths = files.map(file => file.path)) {
     const isDocument = source => /<!doctype\s+html|<html\b/i.test(source);
@@ -270,7 +377,7 @@
     });
   }
   function summarize(checks){const pass=checks.filter(x=>x.status==="PASS").length;const fail=checks.filter(x=>x.status==="FAIL").length;const unknown=checks.filter(x=>x.status==="UNKNOWN").length;const na=checks.filter(x=>x.status==="N/A").length;const determined=pass+fail;const applicable=checks.length-na;return{pass,fail,unknown,na,determined,applicable,total:checks.length,coverage:applicable?Math.round(determined/applicable*100):null,score:determined?Math.round(pass/determined*100):null};}
-  async function runAudit(){errorBox.hidden=true;helper.textContent="Loading SEO checklist and scanning the selected GitHub project…";setBusy(true);try{if(!rules){const response=await fetch(ON_PAGE_RULES_URL+"?v="+Date.now(),{cache:"no-store"});if(!response.ok)throw new Error("Could not load on-page-checklist.json.");rules=await response.json();}if(!offPageRules){const response=await fetch(OFF_PAGE_RULES_URL+"?v="+Date.now(),{cache:"no-store"});if(!response.ok)throw new Error("Could not load off-page-checklist.json.");offPageRules=await response.json();}const projectId=$("project-select").value;const project=rules.projects[projectId];if(!project)throw new Error("Unknown project configuration.");const data=await loadProjectFiles(project);const onPageChecks=evaluate(data.contents,data.allPaths);const offPageChecks=offPageRules.checks.map(rule=>({...rule,status:"UNKNOWN",detail:rule.evidence+" No external evidence provider or verified evidence is connected, so this item is not scored as passed or failed."}));const checks=[...onPageChecks,...offPageChecks];const summary=summarize(checks);const report={projectId,projectName:project.name,repository:project.repository+" ("+data.branch+" · "+data.commit.slice(0,7)+")",website:project.website,manifestGeneratedAt:data.generatedAt,manifestUrl:data.manifestUrl,filesFailed:data.failedFiles,auditedAt:new Date().toISOString(),filesScanned:data.contents.length,filesAvailable:data.totalFiles,publicPagesAudited:checks.find(x=>x.id==="html")?.detail||"",summary,score:summary.score,checks,note:(data.totalFiles>data.selectedFiles?"Selected "+data.selectedFiles+" of "+data.totalFiles+" supported source files because the configured safety limit was reached. ":"")+(data.failedFiles?"Downloaded "+data.contents.length+" of "+data.selectedFiles+" selected source files; "+data.failedFiles+" could not be downloaded. ":"All "+data.contents.length+" selected supported source files were downloaded. ")+"Only complete public HTML documents are used for page-level checks; nested admin tools, redirect aliases and HTML fragments are excluded. Dynamic headings may be marked UNKNOWN for live verification. Every check is recalculated on each run. The on-page audit is based on public source files. Off-page checks are loaded from a separate checklist and currently remain UNKNOWN until verifiable external evidence or a data provider is connected. This report does not claim to measure the full backlink profile, brand mentions, PR coverage or social engagement. Some checks require manual verification."};renderReport(report);helper.textContent="Check completed. "+data.contents.length+" source files were inspected."+(data.failedFiles?" "+data.failedFiles+" files could not be downloaded.":"");}catch(error){showError(error.message||"The SEO scan could not be completed.");helper.textContent="The latest scan failed. No new report was saved.";}finally{setBusy(false);}}
+  async function runAudit(){errorBox.hidden=true;helper.textContent="Loading checklists, scanning source files and discovering external references…";setBusy(true);try{if(!rules){const response=await fetch(ON_PAGE_RULES_URL+"?v="+Date.now(),{cache:"no-store"});if(!response.ok)throw new Error("Could not load on-page-checklist.json.");rules=await response.json();}if(!offPageRules){const response=await fetch(OFF_PAGE_RULES_URL+"?v="+Date.now(),{cache:"no-store"});if(!response.ok)throw new Error("Could not load off-page-checklist.json.");offPageRules=await response.json();}const projectId=$("project-select").value;const project=rules.projects[projectId];if(!project)throw new Error("Unknown project configuration.");const data=await loadProjectFiles(project);const onPageChecks=evaluate(data.contents,data.allPaths);const offPageEvidence=await searchOffPage(project);const offPageChecks=offPageRules.checks.map(rule=>({...rule,status:"UNKNOWN",detail:rule.evidence+" Public search candidates are discovery leads only; verify individual pages below. Search coverage is not exhaustive."}));const checks=[...onPageChecks,...offPageChecks];const summary=summarize(checks);const report={projectId,projectName:project.name,repository:project.repository+" ("+data.branch+" · "+data.commit.slice(0,7)+")",website:project.website,manifestGeneratedAt:data.generatedAt,manifestUrl:data.manifestUrl,filesFailed:data.failedFiles,auditedAt:new Date().toISOString(),filesScanned:data.contents.length,filesAvailable:data.totalFiles,publicPagesAudited:checks.find(x=>x.id==="html")?.detail||"",summary,score:summary.score,checks,offPageEvidence,website:project.website,note:(data.totalFiles>data.selectedFiles?"Selected "+data.selectedFiles+" of "+data.totalFiles+" supported source files because the configured safety limit was reached. ":"")+(data.failedFiles?"Downloaded "+data.contents.length+" of "+data.selectedFiles+" selected source files; "+data.failedFiles+" could not be downloaded. ":"All "+data.contents.length+" selected supported source files were downloaded. ")+"Only complete public HTML documents are used for page-level checks; nested admin tools, redirect aliases and HTML fragments are excluded. Dynamic headings may be marked UNKNOWN for live verification. Every check is recalculated on each run. The on-page audit is based on public source files. Off-page discovery searches public web results for independent references. Candidate pages must be opened and verified individually; search results are not a complete backlink index. Backlink quality, referring-domain totals, historical link gains/losses and social engagement still require specialist data or human review."};renderReport(report);helper.textContent="Check completed. "+data.contents.length+" source files were inspected."+(data.failedFiles?" "+data.failedFiles+" files could not be downloaded.":"");}catch(error){showError(error.message||"The SEO scan could not be completed.");helper.textContent="The latest scan failed. No new report was saved.";}finally{setBusy(false);}}
   button.addEventListener("click",runAudit);$("rerun-button").addEventListener("click",runAudit);$("project-select").addEventListener("change",()=>{emptyState.hidden=false;reportContent.hidden=true;errorBox.hidden=true;});
   try{const projectId=$("project-select").value;const saved=JSON.parse(localStorage.getItem("do2earn-seo-bot:last-report-v3:"+projectId)||"null");if(saved&&Array.isArray(saved.checks))renderReport(saved);}catch(_){}
 })();
