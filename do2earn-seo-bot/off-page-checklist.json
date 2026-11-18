@@ -5,7 +5,15 @@
   "evidencePolicy": {
     "defaultStatus": "UNKNOWN",
     "passRequires": "A verifiable external source, connected webmaster/SEO data provider, or documented evidence supplied for review.",
-    "note": "Public source-code scans cannot measure the full backlink profile, link quality, brand mentions, PR coverage, social engagement, guest posts, or directory authority."
+    "note": "Public source-code scans cannot measure the full backlink profile, link quality, brand mentions, PR coverage, social engagement, guest posts, or directory authority.",
+    "discoveryProvider": "Jina Search public web discovery",
+    "pageVerification": "Jina Reader fetches and extracts candidate pages and outbound links",
+    "limitations": [
+      "Search results are samples and do not represent a complete backlink index.",
+      "A verified brand mention does not prove editorial quality, authority, traffic, or ranking impact.",
+      "Backlink quality and historical new/lost-link monitoring require specialist backlink data or manual review.",
+      "A failed candidate verification is not proof that the project has no off-page presence."
+    ]
   },
   "checks": [
     {
@@ -13,63 +21,81 @@
       "category": "Backlink Profile",
       "title": "Relevant referring domains",
       "description": "Verify referring domains and backlink growth using a backlink index or webmaster data.",
-      "evidence": "Requires Ahrefs, Semrush, Majestic, Moz, or equivalent backlink data."
+      "evidence": "Requires Ahrefs, Semrush, Majestic, Moz, or equivalent backlink data.",
+      "verificationMode": "Verify that a live external source page links to the project domain.",
+      "automation": "public-search-and-page-verification"
     },
     {
       "id": "backlink-quality",
       "category": "Backlink Profile",
       "title": "Backlink relevance and quality",
       "description": "Review topical relevance, placement, destination, link attributes and signs of manipulation.",
-      "evidence": "Requires inspection of actual referring pages and link-level data."
+      "evidence": "Requires inspection of actual referring pages and link-level data.",
+      "verificationMode": "Manual review of relevance, authority, placement, anchor text, link attributes and spam risk.",
+      "automation": "manual-or-specialist-provider"
     },
     {
       "id": "digital-pr",
       "category": "Digital PR",
       "title": "Digital PR and editorial coverage",
       "description": "Verify genuine editorial coverage and relevant publications mentioning or linking to the project.",
-      "evidence": "Requires verifiable publication URLs and manual quality review."
+      "evidence": "Requires verifiable publication URLs and manual quality review.",
+      "verificationMode": "Verify the project mention and editorial/news context on an independent source page.",
+      "automation": "public-search-and-page-verification"
     },
     {
       "id": "brand-mentions",
       "category": "Brand Mentions",
       "title": "Unlinked and linked brand mentions",
       "description": "Find and review mentions of the project and brand across independent websites.",
-      "evidence": "Requires web monitoring or search data; search snippets alone are incomplete."
+      "evidence": "Requires web monitoring or search data; search snippets alone are incomplete.",
+      "verificationMode": "Verify the project name in readable third-party page content.",
+      "automation": "public-search-and-page-verification"
     },
     {
       "id": "social-presence",
       "category": "Social Media",
       "title": "Relevant social profiles and activity",
       "description": "Review official profiles, consistency, relevant posts and genuine engagement.",
-      "evidence": "Requires verified profile URLs and platform-level evidence."
+      "evidence": "Requires verified profile URLs and platform-level evidence.",
+      "verificationMode": "Verify a project mention on a recognized social platform.",
+      "automation": "public-search-and-page-verification"
     },
     {
       "id": "community",
       "category": "Community & Forums",
       "title": "Relevant community participation",
       "description": "Review helpful participation in relevant communities without spam or manipulative link drops.",
-      "evidence": "Requires community URLs and contextual manual review."
+      "evidence": "Requires community URLs and contextual manual review.",
+      "verificationMode": "Verify a project mention on a recognized community platform.",
+      "automation": "public-search-and-page-verification"
     },
     {
       "id": "guest-posting",
       "category": "Guest Posting",
       "title": "Relevant guest articles",
       "description": "Verify editorial contributions on relevant, reputable websites and the context of any links.",
-      "evidence": "Requires published article URLs and editorial quality review."
+      "evidence": "Requires published article URLs and editorial quality review.",
+      "verificationMode": "Verify the project mention and article/review context on an external page.",
+      "automation": "public-search-and-page-verification"
     },
     {
       "id": "directories",
       "category": "Directories & Listings",
       "title": "Relevant directories and specialist listings",
       "description": "Verify accurate listings in reputable, relevant directories or specialist platforms.",
-      "evidence": "Requires live listing URLs and relevance/quality review."
+      "evidence": "Requires live listing URLs and relevance/quality review.",
+      "verificationMode": "Verify the project mention and directory/listing context on an external page.",
+      "automation": "public-search-and-page-verification"
     },
     {
       "id": "backlink-monitoring",
       "category": "Monitoring & Maintenance",
       "title": "Backlink monitoring and lost-link review",
       "description": "Check new/lost links, broken backlinks, suspicious patterns and disavow decisions where appropriate.",
-      "evidence": "Requires historical backlink data and periodic human review."
+      "evidence": "Requires historical backlink data and periodic human review.",
+      "verificationMode": "Manual/provider-based review of historical new and lost backlink data.",
+      "automation": "manual-or-specialist-provider"
     }
   ]
 }
