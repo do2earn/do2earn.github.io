@@ -12,13 +12,15 @@
       "name": "Steem Flags",
       "repository": "do2earn/steemflags",
       "branch": "main",
-      "website": "https://steemflags.do2earn.dev"
+      "website": "https://steemflags.do2earn.dev",
+      "manifestUrl": "https://raw.githubusercontent.com/do2earn/do2earn-seo-bot/main/public-manifests/steem-flags.json"
     },
     "steem-games": {
       "name": "Steem Games",
       "repository": "do2earn/steemgames",
       "branch": "main",
-      "website": "https://steemgames.do2earn.dev"
+      "website": "https://steemgames.do2earn.dev",
+      "manifestUrl": "https://raw.githubusercontent.com/do2earn/do2earn-seo-bot/main/public-manifests/steem-games.json"
     }
   },
   "scan": {
