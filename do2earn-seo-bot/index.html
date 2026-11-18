@@ -4,10 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f5f8fc">
-  <meta name="description" content="Automated on-page and technical SEO audits for Steem Flags and Steem Games by Do2Earn.">
+  <meta name="description" content="On-page, technical and off-page SEO audits for Steem Flags and Steem Games by Do2Earn.">
   <title>Do2Earn SEO Bot</title>
   <link rel="stylesheet" href="./style.css">
-  <script src="./script.js?v=12" defer></script>
+  <script src="./script.js?v=13" defer></script>
 </head>
 <body>
   <main class="app-shell">
@@ -27,23 +27,23 @@
       <div class="card-heading"><span class="step-number">01</span><div><p class="eyebrow">GITHUB SOURCE CODE ANALYSIS</p><h2 id="checker-title">SEO Checker</h2></div></div>
       <label class="field"><span>Do2Earn Project</span><select id="project-select"><option value="steem-flags">Steem Flags</option><option value="steem-games">Steem Games</option></select></label>
       <div class="audit-scope"><span class="scope-check">✓</span><span><strong>On-Page &amp; Technical SEO</strong><small>Page content, metadata, crawlability, links, structured data and performance</small></span><span class="scope-live">ENABLED</span></div>
-      <div class="audit-scope disabled"><span class="scope-lock">—</span><span><strong>Off-Page SEO</strong><small>Backlinks and external authority analysis are disabled for now.</small></span><span class="scope-off">DISABLED</span></div>
+      <div class="audit-scope"><span class="scope-check">↗</span><span><strong>Off-Page SEO</strong><small>Discover external mentions, backlinks, social profiles, communities, editorial coverage and listings. Verify each source before it counts.</small></span><span class="scope-live">ENABLED</span></div>
       <button class="primary-button" id="check-button" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5M7.8 10.8l2 2 4-4"/></svg>Check SEO</button>
       <p class="helper-text" id="helper-text">Select a project and scan its source files. Results are recalculated on every run.</p>
       <div class="error-box" id="error-box" hidden role="alert"></div>
     </section>
     <section class="card results-card" id="results-card" aria-labelledby="results-title" aria-live="polite">
       <div class="card-heading"><span class="step-number">02</span><div><p class="eyebrow">VERIFIED AUDIT RESULTS</p><h2 id="results-title">SEO Audit Report</h2></div></div>
-      <div class="empty-state" id="empty-state"><span class="empty-icon" aria-hidden="true">⌕</span><h3>Your SEO checklist will appear here</h3><p>Press Check SEO to run both checklists. External off-page checks remain UNKNOWN until verifiable evidence is available.</p></div>
+      <div class="empty-state" id="empty-state"><span class="empty-icon" aria-hidden="true">⌕</span><h3>Your SEO checklist will appear here</h3><p>Press Check SEO to run both checklists and discover external evidence. Open and verify each candidate source before it counts as confirmed.</p></div>
       <div id="report-content" hidden>
         <div class="results-meta"><div><h3 id="report-project">Steem Flags</h3><p id="report-url"></p></div><span class="audit-time" id="audit-time"></span></div>
         <div class="summary-grid"><div class="summary-tile"><strong id="score-value">—</strong><span>Verified score</span></div><div class="summary-tile pass-tile"><strong id="pass-value">0</strong><span>Passed</span></div><div class="summary-tile fail-tile"><strong id="fail-value">0</strong><span>Issues</span></div><div class="summary-tile unknown-tile"><strong id="unknown-value">0</strong><span>Unknown</span></div><div class="summary-tile na-tile"><strong id="na-value">0</strong><span>Not applicable</span></div></div>
         <div class="coverage-line"><span id="coverage-text">Audit coverage</span><span id="pages-text"></span></div><div class="progress-track" role="progressbar" aria-label="Verified SEO score" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progress-bar"><span id="progress-fill"></span></div>
         <div class="legend"><span class="legend-pass">PASS · Verified</span><span class="legend-fail">FAIL · Needs attention</span><span class="legend-unknown">UNKNOWN · Not verified</span><span class="legend-na">N/A · Not applicable</span></div>
-        <div class="list-toolbar"><h3>Audit checks</h3><button class="text-button" id="rerun-button" type="button">Run again</button></div><div class="checklist" id="checklist"></div><div class="report-note" id="report-note"></div>
+        <div class="list-toolbar"><h3>Audit checks</h3><button class="text-button" id="rerun-button" type="button">Run again</button></div><div class="checklist" id="checklist"></div><section class="offpage-panel" id="offpage-panel" hidden><h3>Off-Page Evidence Discovery</h3><p>Public search results are discovery candidates, not proof. Open each source and use Verify source to confirm a live mention or backlink. Backlink quality and historical link changes still require specialist data or human review.</p><div id="offpage-results"></div><div class="offpage-tools"><a href="https://search.google.com/search-console" target="_blank" rel="noopener noreferrer">Google Search Console</a><a href="https://www.bing.com/webmasters/" target="_blank" rel="noopener noreferrer">Bing Webmaster Tools</a><a href="https://ahrefs.com/backlink-checker" target="_blank" rel="noopener noreferrer">Ahrefs Free Backlink Checker</a></div></section><div class="report-note" id="report-note"></div>
       </div>
     </section>
-    <footer><span>Do2Earn SEO Bot</span><span>Automated On-Page &amp; Technical Audit</span></footer>
+    <footer><span>Do2Earn SEO Bot</span><span>Automated On-Page, Technical &amp; Off-Page Audit</span></footer>
   </main>
 </body>
 </html>
