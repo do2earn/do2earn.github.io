@@ -10,7 +10,8 @@
   const reportContent = $("report-content");
   let rules = null;
   let offPageRules = null;
-  function setBusy(busy) { button.disabled = busy; button.textContent = busy ? "Scanning project files…" : "Check SEO"; $("rerun-button").disabled = busy; }
+  function setBusy(busy) { button.disabled = busy; button.textContent = busy ? (selectedAuditType() === "off-page" ? "Discovering external SEO…" : "Scanning project files…") : "Check SEO"; $("rerun-button").disabled = busy; }
+  function selectedAuditType() { return document.querySelector('input[name="audit-type"]:checked')?.value || "on-page"; }
   function showError(message) { errorBox.textContent = message; errorBox.hidden = false; }
   function renderReport(report) {
     emptyState.hidden = true; reportContent.hidden = false;
@@ -34,6 +35,9 @@
 
     const panel=$("offpage-panel"), evidenceList=$("offpage-results");
     if(panel&&evidenceList){
+      panel.hidden = report.auditType !== "off-page";
+      if(report.auditType !== "off-page") evidenceList.replaceChildren();
+      else {
       panel.hidden=false;evidenceList.replaceChildren();
       const evidence=report.offPageEvidence||{candidates:[],errors:[]};
       if(!evidence.candidates.length){
@@ -65,6 +69,7 @@
       if(evidence.errors&&evidence.errors.length){
         const note=document.createElement("p");note.className="offpage-error";
         note.textContent="Some searches could not be completed: "+evidence.errors.join(" · ");evidenceList.append(note);
+      }
       }
     }
     $("report-note").textContent = report.note;
@@ -380,7 +385,32 @@
     });
   }
   function summarize(checks){const pass=checks.filter(x=>x.status==="PASS").length;const fail=checks.filter(x=>x.status==="FAIL").length;const unknown=checks.filter(x=>x.status==="UNKNOWN").length;const na=checks.filter(x=>x.status==="N/A").length;const determined=pass+fail;const applicable=checks.length-na;return{pass,fail,unknown,na,determined,applicable,total:checks.length,coverage:applicable?Math.round(determined/applicable*100):null,score:determined?Math.round(pass/determined*100):null};}
-  async function runAudit(){errorBox.hidden=true;helper.textContent="Loading checklists, scanning source files and discovering external references…";setBusy(true);try{if(!rules){const response=await fetch(ON_PAGE_RULES_URL+"?v="+Date.now(),{cache:"no-store"});if(!response.ok)throw new Error("Could not load on-page-checklist.json.");rules=await response.json();}if(!offPageRules){const response=await fetch(OFF_PAGE_RULES_URL+"?v="+Date.now(),{cache:"no-store"});if(!response.ok)throw new Error("Could not load off-page-checklist.json.");offPageRules=await response.json();}const projectId=$("project-select").value;const project=rules.projects[projectId];if(!project)throw new Error("Unknown project configuration.");const data=await loadProjectFiles(project);const onPageChecks=evaluate(data.contents,data.allPaths);const offPageEvidence=await searchOffPage(project);const offPageChecks=offPageRules.checks.map(rule=>({...rule,status:"UNKNOWN",detail:rule.evidence+" Public search candidates are discovery leads only; verify individual pages below. Search coverage is not exhaustive."}));const checks=[...onPageChecks,...offPageChecks];const summary=summarize(checks);const report={projectId,projectName:project.name,repository:project.repository+" ("+data.branch+" · "+data.commit.slice(0,7)+")",website:project.website,manifestGeneratedAt:data.generatedAt,manifestUrl:data.manifestUrl,filesFailed:data.failedFiles,auditedAt:new Date().toISOString(),filesScanned:data.contents.length,filesAvailable:data.totalFiles,publicPagesAudited:checks.find(x=>x.id==="html")?.detail||"",summary,score:summary.score,checks,offPageEvidence,website:project.website,note:(data.totalFiles>data.selectedFiles?"Selected "+data.selectedFiles+" of "+data.totalFiles+" supported source files because the configured safety limit was reached. ":"")+(data.failedFiles?"Downloaded "+data.contents.length+" of "+data.selectedFiles+" selected source files; "+data.failedFiles+" could not be downloaded. ":"All "+data.contents.length+" selected supported source files were downloaded. ")+"Only complete public HTML documents are used for page-level checks; nested admin tools, redirect aliases and HTML fragments are excluded. Dynamic headings may be marked UNKNOWN for live verification. Every check is recalculated on each run. The on-page audit is based on public source files. Off-page discovery searches public web results for independent references. Candidate pages must be opened and verified individually; search results are not a complete backlink index. Backlink quality, referring-domain totals, historical link gains/losses and social engagement still require specialist data or human review."};renderReport(report);helper.textContent="Check completed. "+data.contents.length+" source files were inspected."+(data.failedFiles?" "+data.failedFiles+" files could not be downloaded.":"");}catch(error){showError(error.message||"The SEO scan could not be completed.");helper.textContent="The latest scan failed. No new report was saved.";}finally{setBusy(false);}}
-  button.addEventListener("click",runAudit);$("rerun-button").addEventListener("click",runAudit);$("project-select").addEventListener("change",()=>{emptyState.hidden=false;reportContent.hidden=true;errorBox.hidden=true;});
+  async function runAudit(){
+    errorBox.hidden=true;
+    const auditType=selectedAuditType();
+    helper.textContent=auditType==="off-page"?"Loading off-page checklist and discovering external references…":"Loading on-page checklist and scanning source files…";
+    setBusy(true);
+    try{
+      if(!rules){const response=await fetch(ON_PAGE_RULES_URL+"?v="+Date.now(),{cache:"no-store"});if(!response.ok)throw new Error("Could not load on-page-checklist.json.");rules=await response.json();}
+      if(!offPageRules){const response=await fetch(OFF_PAGE_RULES_URL+"?v="+Date.now(),{cache:"no-store"});if(!response.ok)throw new Error("Could not load off-page-checklist.json.");offPageRules=await response.json();}
+      const projectId=$("project-select").value,project=rules.projects[projectId];
+      if(!project)throw new Error("Unknown project configuration.");
+      let checks=[],offPageEvidence={candidates:[],errors:[]},data=null,note="";
+      if(auditType==="on-page"){
+        data=await loadProjectFiles(project);checks=evaluate(data.contents,data.allPaths);
+        note=(data.totalFiles>data.selectedFiles?"Selected "+data.selectedFiles+" of "+data.totalFiles+" supported source files because the configured safety limit was reached. ":"")+(data.failedFiles?"Downloaded "+data.contents.length+" of "+data.selectedFiles+" selected source files; "+data.failedFiles+" could not be downloaded. ":"All "+data.contents.length+" selected supported source files were downloaded. ")+"Only complete public HTML documents are used for page-level checks; nested admin tools, redirect aliases and HTML fragments are excluded. Dynamic headings may be marked UNKNOWN for live verification. Every on-page check is recalculated on each run and is based on public source files.";
+      }else{
+        offPageEvidence=await searchOffPage(project);
+        checks=offPageRules.checks.map(rule=>({...rule,status:"UNKNOWN",detail:rule.evidence+" Public search candidates are discovery leads only; verify individual pages below. Search coverage is not exhaustive."}));
+        note="Off-page discovery searches public web results for independent references. Candidate pages must be opened and verified individually; search results are not a complete backlink index. Backlink quality, referring-domain totals, historical link gains/losses and social engagement still require specialist data or human review. Unverified checks remain UNKNOWN.";
+      }
+      const summary=summarize(checks);
+      const report={auditType,projectId,projectName:project.name,repository:project.repository+(data?" ("+data.branch+" · "+data.commit.slice(0,7)+")":""),website:project.website,manifestGeneratedAt:data?.generatedAt||null,manifestUrl:data?.manifestUrl||null,filesFailed:data?.failedFiles||0,auditedAt:new Date().toISOString(),filesScanned:data?.contents.length||0,filesAvailable:data?.totalFiles||0,publicPagesAudited:checks.find(x=>x.id==="html")?.detail||"",summary,score:summary.score,checks,offPageEvidence,note};
+      renderReport(report);
+      helper.textContent=auditType==="off-page"?"Off-Page SEO discovery completed. Verify the candidate sources below.":"On-Page SEO check completed. "+data.contents.length+" source files were inspected."+(data.failedFiles?" "+data.failedFiles+" files could not be downloaded.":"");
+    }catch(error){showError(error.message||"The SEO scan could not be completed.");helper.textContent="The latest scan failed. No new report was saved.";}
+    finally{setBusy(false);}
+  }
+  button.addEventListener("click",runAudit);$("rerun-button").addEventListener("click",runAudit);$("project-select").addEventListener("change",()=>{emptyState.hidden=false;reportContent.hidden=true;errorBox.hidden=true;});document.querySelectorAll('input[name="audit-type"]').forEach(input=>input.addEventListener("change",()=>{emptyState.hidden=false;reportContent.hidden=true;errorBox.hidden=true;helper.textContent=input.value==="off-page"?"Off-Page SEO is selected. Only external discovery and verification checks will run.":"On-Page SEO is selected. Only source-code and technical checks will run.";}));
   try{const projectId=$("project-select").value;const saved=JSON.parse(localStorage.getItem("do2earn-seo-bot:last-report-v3:"+projectId)||"null");if(saved&&Array.isArray(saved.checks))renderReport(saved);}catch(_){}
 })();
