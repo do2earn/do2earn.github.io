@@ -128,10 +128,55 @@
     const imageTags = [...publicJoined.matchAll(/<img\b[^>]*>/gi)].map(match => match[0]);
     const missingAlt = imageTags.filter(tag => !/\balt\s*=/i.test(tag));
     const emptyAlt = imageTags.filter(tag => /\balt\s*=\s*["']\s*["']/i.test(tag));
-    const imageWithoutHint = imageTags.filter(tag =>
-      !/\bloading\s*=\s*["'](?:lazy|eager)["']/i.test(tag) &&
-      !/\bfetchpriority\s*=\s*["']high["']/i.test(tag)
-    );
+    // Image loading is evaluated with conservative source-position heuristics.
+    // Source alone cannot prove the rendered fold, so ambiguous images remain UNKNOWN.
+    const imageLoading = (() => {
+      const totals = { total: 0, hero: 0, below: 0, unknown: 0, heroMissing: 0, belowMissing: 0, unknownMissing: 0 };
+      for (const page of html) {
+        const source = page.text;
+        const matches = [...source.matchAll(/<img\b[^>]*>/gi)];
+        matches.forEach((match, index) => {
+          const tag = match[0];
+          const position = match.index || 0;
+          const before = source.slice(Math.max(0, position - 650), position);
+          const after = source.slice(position + tag.length, position + tag.length + 260);
+          const context = before + " " + tag + " " + after;
+          const explicitHero = /\b(?:hero|banner|cover|featured|masthead|main-visual|mainvisual|lcp)\b/i.test(context);
+          const explicitBelow = /\b(?:below[-_ ]?fold|thumbnail|gallery|related|recommendations|footer)\b/i.test(context);
+          const mainStart = source.search(/<main\b/i);
+          const mainEnd = mainStart >= 0 ? source.indexOf("</main", mainStart) : -1;
+          const firstSectionEnd = source.indexOf("</section", Math.max(0, mainStart));
+          const insideMain = mainStart >= 0 && position > mainStart && (mainEnd < 0 || position < mainEnd);
+          const inFirstMainSection = insideMain && firstSectionEnd >= 0 && position < firstSectionEnd;
+          const sectionCount = (source.slice(0, position).match(/<section\b/gi) || []).length;
+          const isHero = explicitHero || (inFirstMainSection && index === 0);
+          const isBelow = !isHero && (explicitBelow || sectionCount >= 2 || index >= 2);
+          const loading = (tag.match(/\bloading\s*=\s*["']([^"']+)["']/i) || [])[1]?.toLowerCase() || "";
+          const priority = (tag.match(/\bfetchpriority\s*=\s*["']([^"']+)["']/i) || [])[1]?.toLowerCase() || "";
+          const hasHint = loading === "lazy" || loading === "eager" || priority === "high" || priority === "low";
+          totals.total++;
+          if (isHero) {
+            totals.hero++;
+            if (loading === "lazy" || (loading !== "eager" && priority !== "high")) totals.heroMissing++;
+          } else if (isBelow) {
+            totals.below++;
+            if (loading !== "lazy") totals.belowMissing++;
+          } else {
+            totals.unknown++;
+            if (!hasHint) totals.unknownMissing++;
+          }
+        });
+      }
+      let status = true;
+      if (totals.heroMissing || totals.belowMissing) status = false;
+      else if (totals.unknownMissing) status = null;
+      const detail = "Public-page images: " + totals.total +
+        "; likely hero images: " + totals.hero + " (missing eager/high priority: " + totals.heroMissing + ")" +
+        "; likely below-the-fold images: " + totals.below + " (missing loading=lazy: " + totals.belowMissing + ")" +
+        "; position-uncertain images: " + totals.unknown + " (without an explicit hint: " + totals.unknownMissing + "). " +
+        "Hero/below-fold groups are heuristic classifications from HTML structure and naming; uncertain images remain UNKNOWN because source code cannot confirm rendered viewport position.";
+      return { status: totals.total === 0 ? true : status, detail };
+    })();
     const paths = new Set(allPaths);
     const sitemapPaths = [...paths].filter(path => /(^|\/)sitemap[^/]*\.xml$/i.test(path));
     const robotsPaths = [...paths].filter(path => /(^|\/)robots\.txt$/i.test(path));
@@ -155,7 +200,7 @@
       "robots-file": [robotsPaths.length > 0, robotsPaths.length ? "Found: " + robotsPaths.join(", ") : "No robots.txt found in the repository tree."],
       https: [!insecureCanonicalOrSitemap, insecureCanonicalOrSitemap ? "An HTTP canonical or sitemap URL was found; use HTTPS." : "Canonical and sitemap URLs use HTTPS or no insecure URL was found."],
       "heading-order": [!hasHtml ? null : h1Missing.length && h1Missing.every(file => h1Dynamic.includes(file)) ? null : html.every(file => /<h1\b/i.test(file.text) && !/<h[3-6]\b[^>]*>[\s\S]{0,160}?<\/h[3-6]>\s*<h[1-2]\b/i.test(file.text)), "Heading markup inspected on: " + pageNames + ". Dynamic headings require live-page verification."],
-      "image-loading": [!hasHtml ? null : imageTags.length === 0 ? true : imageWithoutHint.length === 0 ? true : null, "Public-page images: " + imageTags.length + "; without an explicit loading/fetch priority hint: " + imageWithoutHint.length + ". Missing hints are UNKNOWN because source code alone cannot determine whether an image is above or below the fold. Use eager/high priority for the hero image and lazy loading for below-the-fold images."],
+      "image-loading": [!hasHtml ? null : imageLoading.status, imageLoading.detail],
       "css-imports": [cssImports <= 2, cssImports + " CSS @import statement(s) found across scanned source files."],
       "mixed-content": [insecureAssets.length === 0, insecureAssets.length ? insecureAssets.length + " HTTP asset reference(s) found." : "No insecure HTTP asset references found."],
       "social-image": perPage(/property\s*=\s*["']og:image["']/i, "social sharing image")
