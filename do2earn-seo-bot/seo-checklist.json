@@ -158,6 +158,126 @@
       "category": "Social SEO",
       "title": "Social sharing image",
       "description": "Open Graph image metadata is present."
+    },
+    {
+      "id": "title-length",
+      "category": "On-Page SEO",
+      "title": "Title length",
+      "description": "Checks static page titles against an advisory display-length range."
+    },
+    {
+      "id": "title-unique",
+      "category": "On-Page SEO",
+      "title": "Unique page titles",
+      "description": "Detects duplicate title text across audited pages."
+    },
+    {
+      "id": "description-length",
+      "category": "On-Page SEO",
+      "title": "Meta description length",
+      "description": "Checks available descriptions against an advisory length range."
+    },
+    {
+      "id": "description-unique",
+      "category": "On-Page SEO",
+      "title": "Unique meta descriptions",
+      "description": "Detects duplicate descriptions across audited pages."
+    },
+    {
+      "id": "single-h1",
+      "category": "On-Page SEO",
+      "title": "Single H1 structure",
+      "description": "Flags multiple static H1 elements; one H1 is a structural recommendation, not a strict ranking rule."
+    },
+    {
+      "id": "descriptive-links",
+      "category": "On-Page SEO",
+      "title": "Descriptive link text",
+      "description": "Finds anchors without visible text or an accessible label."
+    },
+    {
+      "id": "internal-links",
+      "category": "On-Page SEO",
+      "title": "Internal linking",
+      "description": "Checks for local navigation links in public pages."
+    },
+    {
+      "id": "broken-internal-links",
+      "category": "Technical SEO",
+      "title": "Broken internal HTML links",
+      "description": "Compares local HTML link targets with the generated repository file list."
+    },
+    {
+      "id": "clean-urls",
+      "category": "Technical SEO",
+      "title": "URL-friendly file paths",
+      "description": "Flags spaces, uppercase letters and unusual characters in scanned paths."
+    },
+    {
+      "id": "sitemap-structure",
+      "category": "Technical SEO",
+      "title": "Sitemap structure",
+      "description": "Checks sitemap XML well-formedness and root element."
+    },
+    {
+      "id": "robots-sitemap",
+      "category": "Technical SEO",
+      "title": "Sitemap reference in robots.txt",
+      "description": "Checks for a Sitemap directive; recommended, not mandatory."
+    },
+    {
+      "id": "canonical-single",
+      "category": "Technical SEO",
+      "title": "Single canonical per page",
+      "description": "Checks exactly one canonical link on each audited page."
+    },
+    {
+      "id": "canonical-absolute",
+      "category": "Technical SEO",
+      "title": "Absolute HTTPS canonical",
+      "description": "Checks canonical URLs are absolute HTTPS addresses."
+    },
+    {
+      "id": "hreflang",
+      "category": "International SEO",
+      "title": "Hreflang annotations",
+      "description": "Checks basic language-code and HTTPS syntax when used."
+    },
+    {
+      "id": "jsonld-valid",
+      "category": "Structured Data",
+      "title": "Valid JSON-LD syntax",
+      "description": "Parses JSON-LD blocks as JSON; does not validate schema vocabulary."
+    },
+    {
+      "id": "image-dimensions",
+      "category": "Performance",
+      "title": "Image width and height",
+      "description": "Checks whether images declare dimensions to reserve layout space."
+    },
+    {
+      "id": "modern-images",
+      "category": "Performance",
+      "title": "Modern image formats",
+      "description": "Detects WebP or AVIF references; absence is not treated as failure."
+    },
+    {
+      "id": "render-blocking-scripts",
+      "category": "Performance",
+      "title": "Parser-blocking scripts",
+      "description": "Finds classic scripts in the document head without defer or async."
+    },
+    {
+      "id": "semantic-landmarks",
+      "category": "Accessibility & Structure",
+      "title": "Semantic page landmarks",
+      "description": "Checks for main and nav landmarks in public pages."
+    },
+    {
+      "id": "og-completeness",
+      "category": "Social SEO",
+      "title": "Complete Open Graph metadata",
+      "description": "Checks Open Graph description, type and URL."
     }
   ]
 }
