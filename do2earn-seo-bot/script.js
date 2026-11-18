@@ -63,7 +63,7 @@
       "robots-file":[files.some(f=>/(^|\/)robots\.txt$/i.test(f.path)),"Repository file tree checked"],
       https:[!test(/(?:href|src|content)\s*=\s*[\"']http:\/\//i,joined),"Absolute asset and metadata references searched"],
       "heading-order":[hasHtml&&all.every(s=>test(/<h1\b/i,s)&&!test(/<h[3-6]\b[\s\S]{0,120}?<\/h[3-6]>\s*<h[1-2]\b/i,s)),"HTML heading markup inspected"],
-      "image-loading":[hasHtml&&all.every(s=>[...s.matchAll(/<img\b[^>]*>/gi)].every(m=>/\bloading\s*=\s*[\"']lazy[\"']/i.test(m[0])||/\bfetchpriority\s*=\s*[\"']high[\"']/i.test(m[0])),"Image tags found: "+count(/<img\b/gi,joined)],
+      "image-loading":[hasHtml&&all.every(s=>[...s.matchAll(/<img\b[^>]*>/gi)].every(m=>/\bloading\s*=\s*[\"']lazy[\"']/i.test(m[0])||/\bfetchpriority\s*=\s*[\"']high[\"']/i.test(m[0]))),"Image tags found: "+count(/<img\b/gi,joined)],
       "css-imports":[count(/@import\b/gi,joined)<=2,count(/@import\b/gi,joined)+" CSS @import statement(s) found"],
       "mixed-content":[!test(/(?:src|href)\s*=\s*[\"']http:\/\/(?!localhost)/i,joined),"Source files searched for insecure asset URLs"],
       "social-image":[hasHtml&&all.some(s=>test(/property\s*=\s*[\"']og:image[\"']/i,s)),"Open Graph image metadata searched"]
