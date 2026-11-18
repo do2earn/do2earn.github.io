@@ -139,7 +139,7 @@
       "id": "image-loading",
       "category": "Performance",
       "title": "Image loading hints",
-      "description": "Images use lazy loading where appropriate."
+      "description": "Checks explicit image and ancestor semantics for lazy loading; ambiguous viewport positions remain unknown."
     },
     {
       "id": "css-imports",
@@ -211,7 +211,7 @@
       "id": "clean-urls",
       "category": "Technical SEO",
       "title": "URL-friendly file paths",
-      "description": "Flags spaces, uppercase letters and unusual characters in scanned paths."
+      "description": "Checks URL-addressable public pages and browser assets, excluding repository documentation and configuration files."
     },
     {
       "id": "sitemap-structure",
