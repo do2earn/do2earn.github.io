@@ -162,7 +162,7 @@
         projectId, projectName:project.name, repository:project.repository + " (" + data.branch + ")",
         website:project.website, auditedAt:new Date().toISOString(), filesScanned:data.contents.length,
         filesAvailable:data.totalFiles, summary, score:summary.score, checks,
-        note:"This audit scans the public GitHub source repository and recalculates every check on each run. It does not inspect live rendered pages, Google indexing, Core Web Vitals, backlinks or external authority. Off-Page SEO remains disabled. Checks are evidence-based and source-level results may require manual verification."
+        note:(data.totalFiles > data.contents.length ? "Partial scan: " + data.contents.length + " of " + data.totalFiles + " supported source files were scanned because the configured safety limit was reached. " : "All " + data.contents.length + " supported source files in the repository were scanned. ") + "Every check is recalculated on each run. This source-code audit does not inspect live rendered pages, Google indexing, Core Web Vitals or backlinks. Off-Page SEO remains disabled. Some checks still require manual verification."
       };
       renderReport(report);
       helper.textContent = "Check completed. " + data.contents.length + " source files were inspected.";
