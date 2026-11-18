@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "title": "Do2Earn Off-Page SEO Checklist",
+  "description": "External authority and promotion checks. These checks require independent evidence and are never marked PASS from source-code inspection alone.",
+  "evidencePolicy": {
+    "defaultStatus": "UNKNOWN",
+    "passRequires": "A verifiable external source, connected webmaster/SEO data provider, or documented evidence supplied for review.",
+    "note": "Public source-code scans cannot measure the full backlink profile, link quality, brand mentions, PR coverage, social engagement, guest posts, or directory authority."
+  },
+  "checks": [
+    {
+      "id": "backlink-profile",
+      "category": "Backlink Profile",
+      "title": "Relevant referring domains",
+      "description": "Verify referring domains and backlink growth using a backlink index or webmaster data.",
+      "evidence": "Requires Ahrefs, Semrush, Majestic, Moz, or equivalent backlink data."
+    },
+    {
+      "id": "backlink-quality",
+      "category": "Backlink Profile",
+      "title": "Backlink relevance and quality",
+      "description": "Review topical relevance, placement, destination, link attributes and signs of manipulation.",
+      "evidence": "Requires inspection of actual referring pages and link-level data."
+    },
+    {
+      "id": "digital-pr",
+      "category": "Digital PR",
+      "title": "Digital PR and editorial coverage",
+      "description": "Verify genuine editorial coverage and relevant publications mentioning or linking to the project.",
+      "evidence": "Requires verifiable publication URLs and manual quality review."
+    },
+    {
+      "id": "brand-mentions",
+      "category": "Brand Mentions",
+      "title": "Unlinked and linked brand mentions",
+      "description": "Find and review mentions of the project and brand across independent websites.",
+      "evidence": "Requires web monitoring or search data; search snippets alone are incomplete."
+    },
+    {
+      "id": "social-presence",
+      "category": "Social Media",
+      "title": "Relevant social profiles and activity",
+      "description": "Review official profiles, consistency, relevant posts and genuine engagement.",
+      "evidence": "Requires verified profile URLs and platform-level evidence."
+    },
+    {
+      "id": "community",
+      "category": "Community & Forums",
+      "title": "Relevant community participation",
+      "description": "Review helpful participation in relevant communities without spam or manipulative link drops.",
+      "evidence": "Requires community URLs and contextual manual review."
+    },
+    {
+      "id": "guest-posting",
+      "category": "Guest Posting",
+      "title": "Relevant guest articles",
+      "description": "Verify editorial contributions on relevant, reputable websites and the context of any links.",
+      "evidence": "Requires published article URLs and editorial quality review."
+    },
+    {
+      "id": "directories",
+      "category": "Directories & Listings",
+      "title": "Relevant directories and specialist listings",
+      "description": "Verify accurate listings in reputable, relevant directories or specialist platforms.",
+      "evidence": "Requires live listing URLs and relevance/quality review."
+    },
+    {
+      "id": "backlink-monitoring",
+      "category": "Monitoring & Maintenance",
+      "title": "Backlink monitoring and lost-link review",
+      "description": "Check new/lost links, broken backlinks, suspicious patterns and disavow decisions where appropriate.",
+      "evidence": "Requires historical backlink data and periodic human review."
+    }
+  ]
+}
