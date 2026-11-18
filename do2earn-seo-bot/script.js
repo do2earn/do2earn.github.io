@@ -128,53 +128,48 @@
     const imageTags = [...publicJoined.matchAll(/<img\b[^>]*>/gi)].map(match => match[0]);
     const missingAlt = imageTags.filter(tag => !/\balt\s*=/i.test(tag));
     const emptyAlt = imageTags.filter(tag => /\balt\s*=\s*["']\s*["']/i.test(tag));
-    // Image loading is evaluated with conservative source-position heuristics.
-    // Source alone cannot prove the rendered fold, so ambiguous images remain UNKNOWN.
+    // Classify only images whose own attributes or nearest semantic containers clearly identify their role.
+    // Static source cannot reliably establish viewport position, so ambiguous images remain UNKNOWN.
     const imageLoading = (() => {
       const totals = { total: 0, hero: 0, below: 0, unknown: 0, heroMissing: 0, belowMissing: 0, unknownMissing: 0 };
       for (const page of html) {
-        const source = page.text;
-        const matches = [...source.matchAll(/<img\b[^>]*>/gi)];
-        matches.forEach((match, index) => {
-          const tag = match[0];
-          const position = match.index || 0;
-          const before = source.slice(Math.max(0, position - 650), position);
-          const after = source.slice(position + tag.length, position + tag.length + 260);
-          const context = before + " " + tag + " " + after;
-          const explicitHero = /\b(?:hero|banner|cover|featured|masthead|main-visual|mainvisual|lcp)\b/i.test(context);
-          const explicitBelow = /\b(?:below[-_ ]?fold|thumbnail|gallery|related|recommendations|footer)\b/i.test(context);
-          const mainStart = source.search(/<main\b/i);
-          const mainEnd = mainStart >= 0 ? source.indexOf("</main", mainStart) : -1;
-          const firstSectionEnd = source.indexOf("</section", Math.max(0, mainStart));
-          const insideMain = mainStart >= 0 && position > mainStart && (mainEnd < 0 || position < mainEnd);
-          const inFirstMainSection = insideMain && firstSectionEnd >= 0 && position < firstSectionEnd;
-          const sectionCount = (source.slice(0, position).match(/<section\b/gi) || []).length;
-          const isHero = explicitHero || (inFirstMainSection && index === 0);
-          const isBelow = !isHero && (explicitBelow || sectionCount >= 2 || index >= 2);
-          const loading = (tag.match(/\bloading\s*=\s*["']([^"']+)["']/i) || [])[1]?.toLowerCase() || "";
-          const priority = (tag.match(/\bfetchpriority\s*=\s*["']([^"']+)["']/i) || [])[1]?.toLowerCase() || "";
-          const hasHint = loading === "lazy" || loading === "eager" || priority === "high" || priority === "low";
+        const doc = new DOMParser().parseFromString(page.text, "text/html");
+        for (const img of doc.querySelectorAll("img")) {
+          const own = [img.getAttribute("class"), img.id, img.getAttribute("alt"), img.getAttribute("src"), img.getAttribute("title")].filter(Boolean).join(" ");
+          const ancestors = [];
+          let parent = img.parentElement;
+          for (let depth = 0; parent && depth < 3; depth++, parent = parent.parentElement) {
+            ancestors.push([parent.tagName, parent.id, parent.getAttribute("class")].filter(Boolean).join(" "));
+          }
+          const semantic = (own + " " + ancestors.join(" ")).toLowerCase();
+          const explicitHero = /(?:^|[\s_-])(?:hero|banner|cover|featured|masthead|main-visual|mainvisual|lcp)(?:$|[\s_-])/.test(semantic);
+          const explicitBelow = /(?:^|[\s_-])(?:below[-_ ]?fold|thumbnail|gallery|related|recommendations|footer)(?:$|[\s_-])/.test(semantic) ||
+            ancestors.some(value => /^FOOTER(?:\s|$)/i.test(value));
+          const loading = (img.getAttribute("loading") || "").toLowerCase();
+          const priority = (img.getAttribute("fetchpriority") || "").toLowerCase();
+          const hasHint = ["lazy", "eager"].includes(loading) || ["high", "low"].includes(priority);
           totals.total++;
-          if (isHero) {
+          if (explicitHero && !explicitBelow) {
             totals.hero++;
-            if (loading === "lazy" || (loading !== "eager" && priority !== "high")) totals.heroMissing++;
-          } else if (isBelow) {
+            if (loading === "lazy") totals.heroMissing++;
+            else if (loading !== "eager" && priority !== "high") totals.unknownMissing++;
+          } else if (explicitBelow) {
             totals.below++;
             if (loading !== "lazy") totals.belowMissing++;
           } else {
             totals.unknown++;
             if (!hasHint) totals.unknownMissing++;
           }
-        });
+        }
       }
       let status = true;
       if (totals.heroMissing || totals.belowMissing) status = false;
       else if (totals.unknownMissing) status = null;
       const detail = "Public-page images: " + totals.total +
-        "; likely hero images: " + totals.hero + " (missing eager/high priority: " + totals.heroMissing + ")" +
-        "; likely below-the-fold images: " + totals.below + " (missing loading=lazy: " + totals.belowMissing + ")" +
-        "; position-uncertain images: " + totals.unknown + " (without an explicit hint: " + totals.unknownMissing + "). " +
-        "Hero/below-fold groups are heuristic classifications from HTML structure and naming; uncertain images remain UNKNOWN because source code cannot confirm rendered viewport position.";
+        "; clearly identified hero images: " + totals.hero + " (incorrect lazy loading: " + totals.heroMissing + ")" +
+        "; clearly identified below-the-fold images: " + totals.below + " (missing loading=lazy: " + totals.belowMissing + ")" +
+        "; position-uncertain images: " + totals.unknown + " (without an explicit loading/priority hint: " + totals.unknownMissing + "). " +
+        "Only explicit image/ancestor semantics are classified; source code cannot reliably determine the rendered viewport position of other images.";
       return { status: totals.total === 0 ? true : status, detail };
     })();
     const paths = new Set(allPaths);
@@ -197,7 +192,16 @@
     const missingLinks=localLinks.filter(x=>{try{const u=new URL(x.href,"https://seo-audit.invalid/"+x.page);if(u.origin!=="https://seo-audit.invalid")return false;let p=decodeURIComponent(u.pathname.replace(/^\//,""));if(!p)p="index.html";if(!p.includes("."))p=p.replace(/\/$/,"")+"/index.html";return (p.endsWith(".html")||p.endsWith(".htm"))&&!paths.has(p);}catch(_){return false;}});
     const canonicalInfo=parsedPages.map(x=>({path:x.file.path,links:[...x.doc.querySelectorAll('link[rel~="canonical"]')]}));
     const badCanonical=canonicalInfo.filter(x=>x.links.length===1&&(()=>{try{const u=new URL(x.links[0].getAttribute("href")||"");return u.protocol!=="https:"||!u.host;}catch(_){return true;}})());
-    const urlBad=allPaths.filter(p=>/[A-Z ]/.test(p)||p.includes("?")||p.includes("#"));
+    // Check URL-addressable pages and browser assets only; repository documentation/configuration is not a public URL.
+    const publicUrlPaths = [...new Set([
+      ...html.map(file => file.path),
+      ...allPaths.filter(path =>
+        /\.(?:css|mjs?|png|jpe?g|gif|webp|avif|svg|ico|woff2?|ttf|otf|mp4|webm|json|xml|txt|webmanifest)$/i.test(path) &&
+        !/(^|\/)(?:README|LICENSE|CHANGELOG)(?:\.|$)/i.test(path) &&
+        !/(^|\/)(?:bots|docs|\.github)\//i.test(path)
+      )
+    ])];
+    const urlBad = publicUrlPaths.filter(path => /[A-Z ]/.test(path) || path.includes("?") || path.includes("#"));
     const sitemapFiles=files.filter(f=>/sitemap[^/]*\.xml$/i.test(f.path));
     const sitemapBad=sitemapFiles.filter(f=>{const d=new DOMParser().parseFromString(f.text,"application/xml");return !!d.querySelector("parsererror")||!["urlset","sitemapindex"].includes(d.documentElement?.localName);});
     const robotsFiles=files.filter(f=>f.path.endsWith("robots.txt"));
@@ -220,7 +224,7 @@
       "descriptive-links":[!hasHtml?null:unlabeledLinks.length===0,unlabeledLinks.length+" links without visible text or aria-label."],
       "internal-links":[!hasHtml?null:localLinks.length>0,localLinks.length+" local navigation links detected."],
       "broken-internal-links":[!hasHtml?null:missingLinks.length===0,missingLinks.length?"Potential missing local HTML targets: "+missingLinks.slice(0,10).map(x=>x.page+" → "+x.href).join("; "):"No missing local HTML targets detected by repository-path matching; runtime routes are not tested."],
-      "clean-urls":[urlBad.length===0,urlBad.length?"Unclean paths: "+urlBad.slice(0,10).join(", "):"Scanned paths use simple lowercase URL-friendly names."],
+      "clean-urls":[urlBad.length===0,urlBad.length?"Unclean public URL paths: "+urlBad.slice(0,10).join(", "):"Public page and browser-asset paths use lowercase URL-friendly names; repository docs/config files are excluded."],
       "sitemap-structure":[!sitemapFiles.length?null:sitemapBad.length===0,sitemapFiles.length?(sitemapBad.length?"Basic XML structure issue: "+sitemapBad.map(x=>x.path).join(", "):"Sitemap XML is well-formed with a recognized root element."):"No sitemap available."],
       "robots-sitemap":[!robotsFiles.length?null:robotsMap.length>0,robotsFiles.length?(robotsMap.length?"Sitemap directive found.":"No Sitemap directive; recommended, not mandatory."):"No robots.txt available."],
       "canonical-single":[!hasHtml?null:canonicalInfo.every(x=>x.links.length===1),canonicalInfo.filter(x=>x.links.length!==1).length?"Pages without exactly one canonical: "+canonicalInfo.filter(x=>x.links.length!==1).map(x=>x.path).join(", "):"Exactly one canonical link per audited page."],
