@@ -22,7 +22,7 @@
     }
   },
   "scan": {
-    "maxFiles": 180,
+    "maxFiles": 1000,
     "concurrency": 6,
     "extensions": [
       ".html",
