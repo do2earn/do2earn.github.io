@@ -7,7 +7,7 @@
   <meta name="description" content="Automated on-page and technical SEO audits for Steem Flags and Steem Games by Do2Earn.">
   <title>Do2Earn SEO Bot</title>
   <link rel="stylesheet" href="./style.css">
-  <script src="./script.js?v=8" defer></script>
+  <script src="./script.js?v=10" defer></script>
 </head>
 <body>
   <main class="app-shell">
@@ -37,9 +37,9 @@
       <div class="empty-state" id="empty-state"><span class="empty-icon" aria-hidden="true">⌕</span><h3>Your SEO checklist will appear here</h3><p>Press Check SEO to inspect project files. Only checks supported by source evidence are marked as passed.</p></div>
       <div id="report-content" hidden>
         <div class="results-meta"><div><h3 id="report-project">Steem Flags</h3><p id="report-url"></p></div><span class="audit-time" id="audit-time"></span></div>
-        <div class="summary-grid"><div class="summary-tile"><strong id="score-value">—</strong><span>Verified score</span></div><div class="summary-tile pass-tile"><strong id="pass-value">0</strong><span>Passed</span></div><div class="summary-tile fail-tile"><strong id="fail-value">0</strong><span>Issues</span></div><div class="summary-tile unknown-tile"><strong id="unknown-value">0</strong><span>Unknown</span></div></div>
+        <div class="summary-grid"><div class="summary-tile"><strong id="score-value">—</strong><span>Verified score</span></div><div class="summary-tile pass-tile"><strong id="pass-value">0</strong><span>Passed</span></div><div class="summary-tile fail-tile"><strong id="fail-value">0</strong><span>Issues</span></div><div class="summary-tile unknown-tile"><strong id="unknown-value">0</strong><span>Unknown</span></div><div class="summary-tile na-tile"><strong id="na-value">0</strong><span>Not applicable</span></div></div>
         <div class="coverage-line"><span id="coverage-text">Audit coverage</span><span id="pages-text"></span></div><div class="progress-track" role="progressbar" aria-label="Verified SEO score" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progress-bar"><span id="progress-fill"></span></div>
-        <div class="legend"><span class="legend-pass">PASS · Verified</span><span class="legend-fail">FAIL · Needs attention</span><span class="legend-unknown">UNKNOWN · Not verified</span></div>
+        <div class="legend"><span class="legend-pass">PASS · Verified</span><span class="legend-fail">FAIL · Needs attention</span><span class="legend-unknown">UNKNOWN · Not verified</span><span class="legend-na">N/A · Not applicable</span></div>
         <div class="list-toolbar"><h3>Audit checks</h3><button class="text-button" id="rerun-button" type="button">Run again</button></div><div class="checklist" id="checklist"></div><div class="report-note" id="report-note"></div>
       </div>
     </section>
