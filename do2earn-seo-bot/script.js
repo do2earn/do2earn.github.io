@@ -146,9 +146,10 @@
         const response=await fetch("https://s.jina.ai/"+encodeURIComponent(item.q),{headers:{Accept:"application/json"},cache:"no-store"});
         if(!response.ok) throw new Error("HTTP "+response.status);
         const payload=await response.json();
-        let rows=Array.isArray(payload.data)?payload.data:(Array.isArray(payload.results)?payload.results:[]);
-        if(!rows.length&&typeof payload.content==="string"){
-          const urls=[...new Set(payload.content.match(/https?:\/\/[^\s)\]>]+/g)||[])];
+        let rows=Array.isArray(payload.data)?payload.data:(Array.isArray(payload.results)?payload.results:(Array.isArray(payload.data?.results)?payload.data.results:[]));
+        const searchText=payload.content||payload.data?.content||"";
+        if(!rows.length&&typeof searchText==="string"){
+          const urls=[...new Set(searchText.match(/https?:\/\/[^\s)\]>]+/g)||[])];
           rows=urls.map(url=>({url,title:url}));
         }
         rows.slice(0,4).forEach((row,i)=>{
@@ -163,13 +164,15 @@
     return {candidates,errors,queriesRun:queries.length,domain};
   }
   async function verifyOffPageCandidate(candidate,report){
-    const response=await fetch("https://r.jina.ai/"+candidate.url,{headers:{Accept:"application/json"},cache:"no-store"});
+    const response=await fetch("https://r.jina.ai/"+candidate.url,{headers:{Accept:"application/json","X-With-Links-Summary":"true"},cache:"no-store"});
     if(!response.ok)throw new Error("Reader HTTP "+response.status);
     const payload=await response.json(),data=payload.data||payload;
     const content=String(data.content||payload.content||"");
     if(!content)throw new Error("No readable page content returned.");
     const target=String(report.website).replace(/^https?:\/\//,"").split("/")[0].replace(/^www\./,"");
-    const links=[...content.matchAll(/\[[^\]]*\]\((https?:\/\/[^)\s]+)\)/gi)].map(m=>m[1]);
+    const markdownLinks=[...content.matchAll(/\[[^\]]*\]\((https?:\/\/[^)\s]+)\)/gi)].map(m=>m[1]);
+    const extractedLinks=Array.isArray(data.links)?data.links.map(x=>typeof x==="string"?x:(x.url||x.href||"")):[];
+    const links=[...markdownLinks,...extractedLinks];
     const hasLink=links.some(url=>{try{const host=new URL(url).hostname.replace(/^www\./,"");return host===target||host.endsWith("."+target);}catch(_){return false;}});
     const lower=content.toLowerCase(),brand=String(report.projectName).toLowerCase(),hasBrand=lower.includes(brand);
     const host=new URL(candidate.url).hostname.toLowerCase();
