@@ -1,0 +1,161 @@
+{
+  "version": 1,
+  "title": "Do2Earn SEO Checklist",
+  "scope": {
+    "onPage": true,
+    "technical": true,
+    "sourceCode": true,
+    "offPage": false
+  },
+  "projects": {
+    "steem-flags": {
+      "name": "Steem Flags",
+      "repository": "do2earn/steemflags",
+      "branch": "main",
+      "website": "https://steemflags.do2earn.dev"
+    },
+    "steem-games": {
+      "name": "Steem Games",
+      "repository": "do2earn/steemgames",
+      "branch": "main",
+      "website": "https://steemgames.do2earn.dev"
+    }
+  },
+  "scan": {
+    "maxFiles": 1000,
+    "concurrency": 6,
+    "extensions": [
+      ".html",
+      ".htm",
+      ".css",
+      ".js",
+      ".mjs",
+      ".json",
+      ".xml",
+      ".txt",
+      ".webmanifest"
+    ]
+  },
+  "checks": [
+    {
+      "id": "html",
+      "category": "Technical SEO",
+      "title": "HTML pages are present",
+      "description": "At least one HTML page is found in the source repository."
+    },
+    {
+      "id": "title",
+      "category": "On-Page SEO",
+      "title": "Descriptive page titles",
+      "description": "HTML pages include non-empty title elements."
+    },
+    {
+      "id": "description",
+      "category": "On-Page SEO",
+      "title": "Meta descriptions",
+      "description": "HTML pages include meta descriptions."
+    },
+    {
+      "id": "h1",
+      "category": "On-Page SEO",
+      "title": "H1 headings",
+      "description": "HTML pages include a clear H1 heading."
+    },
+    {
+      "id": "lang",
+      "category": "Technical SEO",
+      "title": "HTML language attribute",
+      "description": "HTML documents declare their language."
+    },
+    {
+      "id": "viewport",
+      "category": "Mobile SEO",
+      "title": "Mobile viewport",
+      "description": "HTML documents declare a responsive viewport."
+    },
+    {
+      "id": "canonical",
+      "category": "Technical SEO",
+      "title": "Canonical URLs",
+      "description": "HTML pages declare canonical URLs."
+    },
+    {
+      "id": "robots-meta",
+      "category": "Indexability",
+      "title": "Robots meta directives",
+      "description": "No accidental noindex directive is detected."
+    },
+    {
+      "id": "og",
+      "category": "Social SEO",
+      "title": "Open Graph metadata",
+      "description": "Open Graph title and description metadata are present."
+    },
+    {
+      "id": "twitter",
+      "category": "Social SEO",
+      "title": "Twitter card metadata",
+      "description": "Twitter card metadata is present."
+    },
+    {
+      "id": "alt",
+      "category": "On-Page SEO",
+      "title": "Image ALT text",
+      "description": "Image elements include non-empty ALT attributes."
+    },
+    {
+      "id": "schema",
+      "category": "Structured Data",
+      "title": "Structured data",
+      "description": "JSON-LD or microdata is present."
+    },
+    {
+      "id": "sitemap",
+      "category": "Technical SEO",
+      "title": "XML sitemap",
+      "description": "A sitemap file is present in the repository."
+    },
+    {
+      "id": "robots-file",
+      "category": "Technical SEO",
+      "title": "robots.txt",
+      "description": "A robots.txt file is present in the repository."
+    },
+    {
+      "id": "https",
+      "category": "Technical SEO",
+      "title": "HTTPS canonical references",
+      "description": "Absolute canonical and sitemap URLs use HTTPS."
+    },
+    {
+      "id": "heading-order",
+      "category": "On-Page SEO",
+      "title": "Heading structure",
+      "description": "Pages use headings in a logical order and include H1."
+    },
+    {
+      "id": "image-loading",
+      "category": "Performance",
+      "title": "Image loading hints",
+      "description": "Images use lazy loading where appropriate."
+    },
+    {
+      "id": "css-imports",
+      "category": "Performance",
+      "title": "CSS external imports",
+      "description": "Stylesheets avoid excessive CSS @import usage."
+    },
+    {
+      "id": "mixed-content",
+      "category": "Technical SEO",
+      "title": "No HTTP asset references",
+      "description": "Source does not reference insecure HTTP assets."
+    },
+    {
+      "id": "social-image",
+      "category": "Social SEO",
+      "title": "Social sharing image",
+      "description": "Open Graph image metadata is present."
+    }
+  ]
+}
