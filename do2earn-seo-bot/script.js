@@ -15,14 +15,14 @@
     $("report-project").textContent = report.projectName; $("report-url").textContent = report.repository;
     $("audit-time").textContent = "Checked " + new Date(report.auditedAt).toLocaleString();
     $("score-value").textContent = report.score === null ? "—" : report.score + "%";
-    $("pass-value").textContent = report.summary.pass; $("fail-value").textContent = report.summary.fail; $("unknown-value").textContent = report.summary.unknown;
-    $("coverage-text").textContent = report.summary.determined + " of " + report.summary.total + " checks determined"; $("pages-text").textContent = report.filesScanned + " source files scanned";
+    $("pass-value").textContent = report.summary.pass; $("fail-value").textContent = report.summary.fail; $("unknown-value").textContent = report.summary.unknown; $("na-value").textContent = report.summary.na || 0;
+    $("coverage-text").textContent = report.summary.determined + " of " + (report.summary.applicable ?? report.summary.total) + " applicable checks determined"; $("pages-text").textContent = report.filesScanned + " source files scanned";
     $("progress-fill").style.width = (report.score || 0) + "%"; $("progress-bar").setAttribute("aria-valuenow", String(report.score || 0));
     const list = $("checklist"); list.replaceChildren(); let category = "";
     report.checks.forEach(check => {
       if (check.category !== category) { category = check.category; const heading = document.createElement("h4"); heading.className = "check-category"; heading.textContent = category; list.append(heading); }
       const row = document.createElement("article"); row.className = "check-item status-" + check.status.toLowerCase();
-      const icon = document.createElement("span"); icon.className = "result-icon"; icon.textContent = check.status === "PASS" ? "✓" : check.status === "FAIL" ? "!" : "?";
+      const icon = document.createElement("span"); icon.className = "result-icon"; icon.textContent = check.status === "PASS" ? "✓" : check.status === "FAIL" ? "!" : check.status === "N/A" ? "—" : "?";
       const body = document.createElement("span"); body.className = "check-copy";
       const title = document.createElement("strong"); title.className = "check-title"; title.textContent = check.title;
       const detail = document.createElement("span"); detail.className = "check-detail"; detail.textContent = check.detail; body.append(title, detail);
@@ -30,7 +30,7 @@
       const badge = document.createElement("span"); badge.className = "result-status"; badge.textContent = check.status; row.append(icon, body, badge); list.append(row);
     });
     $("report-note").textContent = report.note;
-    try { localStorage.setItem("do2earn-seo-bot:last-report:" + report.projectId, JSON.stringify(report)); } catch (_) {}
+    try { localStorage.setItem("do2earn-seo-bot:last-report-v2:" + report.projectId, JSON.stringify(report)); } catch (_) {}
   }
   async function fetchManifest(url) {
     const response = await fetch(url, { headers: { Accept: "application/json" }, cache: "no-store" });
@@ -131,7 +131,7 @@
     // Classify only images whose own attributes or nearest semantic containers clearly identify their role.
     // Static source cannot reliably establish viewport position, so ambiguous images remain UNKNOWN.
     const imageLoading = (() => {
-      const totals = { total: 0, hero: 0, below: 0, unknown: 0, heroMissing: 0, belowMissing: 0, unknownMissing: 0 };
+      const totals = { total: 0, hero: 0, below: 0, unknown: 0, heroMissing: 0, belowMissing: 0 };
       for (const page of html) {
         const doc = new DOMParser().parseFromString(page.text, "text/html");
         for (const img of doc.querySelectorAll("img")) {
@@ -147,30 +147,26 @@
             ancestors.some(value => /^FOOTER(?:\s|$)/i.test(value));
           const loading = (img.getAttribute("loading") || "").toLowerCase();
           const priority = (img.getAttribute("fetchpriority") || "").toLowerCase();
-          const hasHint = ["lazy", "eager"].includes(loading) || ["high", "low"].includes(priority);
           totals.total++;
           if (explicitHero && !explicitBelow) {
             totals.hero++;
-            if (loading === "lazy") totals.heroMissing++;
-            else if (loading !== "eager" && priority !== "high") totals.unknownMissing++;
+            if (loading === "lazy" || (loading !== "eager" && priority !== "high")) totals.heroMissing++;
           } else if (explicitBelow) {
             totals.below++;
-            if (loading !== "lazy") totals.belowMissing++;
+            if (loading !== "lazy" || priority === "high") totals.belowMissing++;
           } else {
             totals.unknown++;
-            if (!hasHint) totals.unknownMissing++;
           }
         }
       }
       let status = true;
       if (totals.heroMissing || totals.belowMissing) status = false;
-      else if (totals.unknownMissing) status = null;
+      else if (totals.unknown) status = null;
       const detail = "Public-page images: " + totals.total +
-        "; clearly identified hero images: " + totals.hero + " (incorrect lazy loading: " + totals.heroMissing + ")" +
+        "; clearly identified hero images: " + totals.hero + " (missing eager/high-priority treatment: " + totals.heroMissing + ")" +
         "; clearly identified below-the-fold images: " + totals.below + " (missing loading=lazy: " + totals.belowMissing + ")" +
-        "; position-uncertain images: " + totals.unknown + " (without an explicit loading/priority hint: " + totals.unknownMissing + "). " +
-        "Only explicit image/ancestor semantics are classified; source code cannot reliably determine the rendered viewport position of other images.";
-      return { status: totals.total === 0 ? true : status, detail };
+        "; position-uncertain images: " + totals.unknown + ". Ambiguous images remain UNKNOWN even when a loading hint exists, because source hints alone cannot prove their rendered viewport position.";
+      return { status: totals.total === 0 ? "N/A" : status, detail };
     })();
     const paths = new Set(allPaths);
     const sitemapPaths = [...paths].filter(path => /(^|\/)sitemap[^/]*\.xml$/i.test(path));
@@ -207,6 +203,10 @@
     const robotsFiles=files.filter(f=>f.path.endsWith("robots.txt"));
     const robotsMap=robotsFiles.filter(f=>f.text.split(/\r?\n/).some(line=>/^\s*sitemap\s*:/i.test(line)));
     const hreflangTags=parsedPages.flatMap(x=>[...x.doc.querySelectorAll('link[rel~="alternate"][hreflang]')].map(tag=>({page:x.file.path,tag})));
+    const pageLanguages = new Set(parsedPages.map(x => (x.doc.documentElement.getAttribute("lang") || "").trim().toLowerCase().split("-")[0]).filter(Boolean));
+    const localeCodes = new Set(["ar","de","en","es","fa","fr","it","ja","ko","nl","pl","pt","ru","tr","zh"]);
+    const localePaths = allPaths.filter(path => path.split("/").some(segment => localeCodes.has(segment.toLowerCase())));
+    const multilingualEvidence = hreflangTags.length > 0 || pageLanguages.size > 1 || localePaths.length > 0;
     const hreflangBad=hreflangTags.filter(x=>{const l=x.tag.getAttribute("hreflang")||"",h=x.tag.getAttribute("href")||"";return !/^(?:[a-z]{2,3}(?:-[a-z0-9]{2,8})*|x-default)$/i.test(l)||!h.startsWith("https://");});
     const jsonLd=parsedPages.flatMap(x=>[...x.doc.querySelectorAll('script[type="application/ld+json"]')].map(n=>({page:x.file.path,text:n.textContent})));
     const invalidJsonLd=jsonLd.filter(x=>{try{JSON.parse(x.text);return false;}catch(_){return true;}});
@@ -229,7 +229,7 @@
       "robots-sitemap":[!robotsFiles.length?null:robotsMap.length>0,robotsFiles.length?(robotsMap.length?"Sitemap directive found.":"No Sitemap directive; recommended, not mandatory."):"No robots.txt available."],
       "canonical-single":[!hasHtml?null:canonicalInfo.every(x=>x.links.length===1),canonicalInfo.filter(x=>x.links.length!==1).length?"Pages without exactly one canonical: "+canonicalInfo.filter(x=>x.links.length!==1).map(x=>x.path).join(", "):"Exactly one canonical link per audited page."],
       "canonical-absolute":[!hasHtml?null:badCanonical.length===0,badCanonical.length?"Canonical not absolute HTTPS: "+badCanonical.map(x=>x.path).join(", "):"Detected canonical URLs are absolute HTTPS URLs."],
-      "hreflang":[!hasHtml?null:!hreflangTags.length?null:hreflangBad.length===0,hreflangTags.length?(hreflangBad.length?"Invalid hreflang syntax/target in "+hreflangBad.length+" tag(s).":"Hreflang syntax looks valid; reciprocal mapping is not checked."):"Not required unless multilingual/regional variants exist."],
+      "hreflang":[!hasHtml?null:!multilingualEvidence?"N/A":!hreflangTags.length?false:hreflangBad.length===0,!multilingualEvidence?"Not applicable: no multilingual or regional page variants were detected.":hreflangTags.length?(hreflangBad.length?"Invalid hreflang syntax/target in "+hreflangBad.length+" tag(s).":"Hreflang syntax looks valid; reciprocal mapping is not checked."):"Multiple language or regional variants were detected, but no hreflang annotations were found."],
       "jsonld-valid":[!hasHtml?null:!jsonLd.length?null:invalidJsonLd.length===0,jsonLd.length?(invalidJsonLd.length?"Invalid JSON-LD syntax in "+invalidJsonLd.length+" block(s).":"All JSON-LD blocks parse as JSON; schema meaning is not validated."):"No JSON-LD blocks; structured-data presence is checked separately."],
       "image-dimensions":[!hasHtml?null:imageTags.length===0?true:noImageDimensions.length===0,noImageDimensions.length+" of "+imageTags.length+" images lack explicit width and/or height."],
       "modern-images":[!hasHtml?null:imageTags.length===0?true:modernImages.length?true:null,modernImages.length+" WebP/AVIF references found; absence is UNKNOWN, not a failure."],
@@ -263,12 +263,12 @@
     return rules.checks.map(rule => {
       const result = results[rule.id];
       if (!result) return { ...rule, status: "UNKNOWN", detail: "This check is not implemented in the current scanner." };
-      const status = result[0] === null ? "UNKNOWN" : result[0] ? "PASS" : "FAIL";
+      const status = result[0] === "N/A" ? "N/A" : result[0] === null ? "UNKNOWN" : result[0] ? "PASS" : "FAIL";
       return { ...rule, status, detail: result[1] };
     });
   }
-  function summarize(checks){const pass=checks.filter(x=>x.status==="PASS").length;const fail=checks.filter(x=>x.status==="FAIL").length;const unknown=checks.filter(x=>x.status==="UNKNOWN").length;const determined=pass+fail;return{pass,fail,unknown,determined,total:checks.length,score:determined?Math.round(pass/determined*100):null};}
+  function summarize(checks){const pass=checks.filter(x=>x.status==="PASS").length;const fail=checks.filter(x=>x.status==="FAIL").length;const unknown=checks.filter(x=>x.status==="UNKNOWN").length;const na=checks.filter(x=>x.status==="N/A").length;const determined=pass+fail;const applicable=checks.length-na;return{pass,fail,unknown,na,determined,applicable,total:checks.length,coverage:applicable?Math.round(determined/applicable*100):null,score:determined?Math.round(pass/determined*100):null};}
   async function runAudit(){errorBox.hidden=true;helper.textContent="Loading SEO checklist and scanning the selected GitHub project…";setBusy(true);try{if(!rules){const response=await fetch(RULES_URL+"?v="+Date.now(),{cache:"no-store"});if(!response.ok)throw new Error("Could not load seo-checklist.json.");rules=await response.json();}const projectId=$("project-select").value;const project=rules.projects[projectId];if(!project)throw new Error("Unknown project configuration.");const data=await loadProjectFiles(project);const checks=evaluate(data.contents,data.allPaths);const summary=summarize(checks);const report={projectId,projectName:project.name,repository:project.repository+" ("+data.branch+" · "+data.commit.slice(0,7)+")",website:project.website,manifestGeneratedAt:data.generatedAt,manifestUrl:data.manifestUrl,filesFailed:data.failedFiles,auditedAt:new Date().toISOString(),filesScanned:data.contents.length,filesAvailable:data.totalFiles,publicPagesAudited:checks.find(x=>x.id==="html")?.detail||"",summary,score:summary.score,checks,note:(data.totalFiles>data.selectedFiles?"Selected "+data.selectedFiles+" of "+data.totalFiles+" supported source files because the configured safety limit was reached. ":"")+(data.failedFiles?"Downloaded "+data.contents.length+" of "+data.selectedFiles+" selected source files; "+data.failedFiles+" could not be downloaded. ":"All "+data.contents.length+" selected supported source files were downloaded. ")+"Only complete public HTML documents are used for page-level checks; nested admin tools, redirect aliases and HTML fragments are excluded. Dynamic headings may be marked UNKNOWN for live verification. Every check is recalculated on each run. This source-code audit does not inspect live rendered pages, Google indexing, Core Web Vitals or backlinks. Off-Page SEO remains disabled. Some checks still require manual verification."};renderReport(report);helper.textContent="Check completed. "+data.contents.length+" source files were inspected."+(data.failedFiles?" "+data.failedFiles+" files could not be downloaded.":"");}catch(error){showError(error.message||"The SEO scan could not be completed.");helper.textContent="The latest scan failed. No new report was saved.";}finally{setBusy(false);}}
   button.addEventListener("click",runAudit);$("rerun-button").addEventListener("click",runAudit);$("project-select").addEventListener("change",()=>{emptyState.hidden=false;reportContent.hidden=true;errorBox.hidden=true;});
-  try{const projectId=$("project-select").value;const saved=JSON.parse(localStorage.getItem("do2earn-seo-bot:last-report:"+projectId)||"null");if(saved&&Array.isArray(saved.checks))renderReport(saved);}catch(_){}
+  try{const projectId=$("project-select").value;const saved=JSON.parse(localStorage.getItem("do2earn-seo-bot:last-report-v2:"+projectId)||"null");if(saved&&Array.isArray(saved.checks))renderReport(saved);}catch(_){}
 })();
