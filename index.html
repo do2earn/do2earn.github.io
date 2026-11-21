@@ -63,7 +63,7 @@
       font-size: clamp(0.8rem, 3.2vw, 0.95rem);
       line-height: 1.5;
       font-weight: 600;
-      letter-spacing: 0.04em;
+      letter-spacing: 0.01em;
     }
     .project-card {
       margin: 0 auto;
@@ -124,6 +124,15 @@
       background: #0b5ed7;
       transform: translateY(-1px);
     }
+    .project-card.is-disabled {
+      filter: grayscale(1);
+      opacity: 0.52;
+      cursor: not-allowed;
+    }
+    .project-card.is-disabled a {
+      pointer-events: none;
+      cursor: not-allowed;
+    }
     .footer-card {
       width: 100%;
       max-width: 560px;
@@ -181,8 +190,8 @@
   <main>
     <img class="do2earn-logo" src="assets/Do2Earn_Logo.png" alt="Do2Earn">
 
-    <h1 class="tagline">Web 3.0 Projects Developer</h1>
-    <p class="experience-tagline">Entertainment • Blockchain • Web3 Experiences</p>
+    <h1 class="tagline">Tools Developer for Web 3.0 Projects</h1>
+    <p class="experience-tagline">We build practical tools for Web3 projects.</p>
 
     <section class="project-card">
       <a class="project-link" href="https://steemgames.do2earn.dev/" target="_blank" rel="noopener noreferrer" aria-label="Open Steem Games">
@@ -200,7 +209,7 @@
       <a class="play-now" href="https://steemgames.do2earn.dev/" target="_blank" rel="noopener noreferrer">Explore Now</a>
     </section>
 
-    <section class="project-card">
+    <section class="project-card is-disabled" inert aria-disabled="true">
       <a class="project-link" href="https://steemflags.do2earn.dev" target="_blank" rel="noopener" aria-label="Open Steem Flags">
         <img class="steemflags-logo" src="assets/steemflags_logo.png" alt="Steem Flags">
       </a>
