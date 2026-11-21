@@ -45,6 +45,17 @@
       color: #0084ff;
       text-shadow: 0 4px 18px rgba(0, 132, 255, 0.18);
     }
+    .tagline span {
+      display: block;
+    }
+    .tagline .tagline-primary {
+      font-size: clamp(1.9rem, 6.2vw, 2.45rem);
+    }
+    .tagline .tagline-secondary {
+      margin-top: 7px;
+      font-size: clamp(1.45rem, 4.8vw, 1.9rem);
+      letter-spacing: -0.02em;
+    }
     .tagline::after {
       content: "";
       position: absolute;
@@ -190,7 +201,7 @@
   <main>
     <img class="do2earn-logo" src="assets/Do2Earn_Logo.png" alt="Do2Earn">
 
-    <h1 class="tagline">Tools Developer for Web 3.0 Projects</h1>
+    <h1 class="tagline"><span class="tagline-primary">Tools Developer</span><span class="tagline-secondary">for Web 3.0 Projects</span></h1>
     <p class="experience-tagline">We build practical tools for Web3 projects.</p>
 
     <section class="project-card">
